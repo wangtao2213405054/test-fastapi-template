@@ -1,48 +1,21 @@
+# _author: Coke
+# _date: 2023/12/11 23:00
+
+from sqlmodel import SQLModel, Field
+
 from datetime import datetime
-from typing import Any, TypeVar, Generic
-from zoneinfo import ZoneInfo
-
-from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel, ConfigDict, model_validator, Field
 
 
-T = TypeVar("T")
+class BaseModel(SQLModel):
+    """ 基础模型 """
+    create_time: datetime = Field(default_factory=datetime.now)  # 记录的创建时间
+    update_time: datetime = Field(default_factory=datetime.now)  # 记录的更新时间
 
 
-def convert_datetime_to_gmt(dt: datetime) -> str:
-    if not dt.tzinfo:
-        dt = dt.replace(tzinfo=ZoneInfo("UTC"))
-
-    return dt.strftime("%Y-%m-%dT%H:%M:%S%z")
+class Base(BaseModel, table=True):
+    """ 数据库模型 """
+    id: int = Field(..., primary_key=True)
 
 
-class CustomModel(BaseModel):
-    """ 通用模型 """
-    model_config = ConfigDict(
-        json_encoders={datetime: convert_datetime_to_gmt},
-        populate_by_name=True,
-    )
-
-    @classmethod
-    @model_validator(mode="before")
-    def set_null_microseconds(cls, data: dict[str, Any]) -> dict[str, Any]:
-        datetime_fields = {
-            k: v.replace(microsecond=0)
-            for k, v in data.items()
-            if isinstance(k, datetime)
-        }
-
-        return {**data, **datetime_fields}
-
-    def serializable_dict(self, **kwargs):
-        """Return a dict which contains only serializable fields."""
-        default_dict = self.model_dump()
-
-        return jsonable_encoder(default_dict)
-
-
-class ResponseModel(CustomModel, Generic[T]):
-    """ 接口通用返回模型 """
-    code: int = Field(1)
-    message: str = Field("接口请求成功")
-    data: T = Field(None)
+class BaseCreate(BaseModel):
+    """ 用于创建新的实例 """

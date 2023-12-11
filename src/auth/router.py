@@ -1,16 +1,19 @@
 
 from fastapi import APIRouter
 
-from src.auth.schemas import AuthLoginRequest, AuthLoginResponse
+from src.auth.schemas import AuthLoginRequest, AccessTokenResponse
+from src.schemas import ResponseModel
+from src.auth import jwt
 
 router = APIRouter(prefix="/auth")
 
 
 @router.post("/user/login")
-async def user_login(body: AuthLoginRequest) -> AuthLoginResponse:
-    """
-    获取用户令牌
-    :param body: <AuthLoginRequest> 对象
-    :return:
-    """
-    return AuthLoginResponse(token="123", refreshToken="333")
+async def user_login(body: AuthLoginRequest) -> ResponseModel[AccessTokenResponse]:
+    """ 获取用户令牌 """
+    return ResponseModel(
+        data=AccessTokenResponse(
+            accessToken=jwt.create_access_token(user={'id': 1, 'is_admin': True}),
+            refreshToken="333"
+        )
+    )

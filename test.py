@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi import HTTPException, status
-from src.models import ResponseModel
+from src.schemas import ResponseModel
 
 
 import uvicorn
@@ -44,4 +44,6 @@ async def read_unicorn(name: str):
 
 
 if __name__ == '__main__':
-    uvicorn.run("test:app", port=8002)
+    import datetime
+    print(datetime.datetime.now())
+    # uvicorn.run("test:app", port=8002)
