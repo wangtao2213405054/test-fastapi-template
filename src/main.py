@@ -1,10 +1,12 @@
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 
 from src.auth.router import router as auth_router
 
 from src.exceptions import DetailedHTTPException
+from src.schemas import ResponseModel
 
 import uvicorn
 
@@ -24,7 +26,7 @@ async def exception_handler(_, exc: DetailedHTTPException):
     """
     return JSONResponse(
         status_code=200,
-        content={"code": exc.STATUS_CODE, "message": exc.DETAIL, "data": None}
+        content=jsonable_encoder(ResponseModel(code=exc.STATUS_CODE, message=exc.DETAIL))
     )
 
 

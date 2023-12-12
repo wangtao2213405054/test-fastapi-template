@@ -10,6 +10,6 @@ body = dict(
     username="admin1",
     password="123456"
 )
-data = requests.request("POST", base_url + "/api/v1/client/auth/user/login", json=body)
+data = requests.request("POST", base_url + "/api/v1/client/auth/user/test", json=body)
 
 print(data.json())

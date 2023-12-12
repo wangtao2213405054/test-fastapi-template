@@ -5,6 +5,8 @@ from src.auth.schemas import AuthLoginRequest, AccessTokenResponse
 from src.schemas import ResponseModel
 from src.auth import jwt
 
+from src.exceptions import NotAuthenticated
+
 router = APIRouter(prefix="/auth")
 
 
@@ -17,3 +19,8 @@ async def user_login(body: AuthLoginRequest) -> ResponseModel[AccessTokenRespons
             refreshToken="333"
         )
     )
+
+
+@router.post("/user/test")
+async def user_test():
+    raise NotAuthenticated()
