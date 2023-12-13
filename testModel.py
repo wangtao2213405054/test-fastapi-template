@@ -2,6 +2,8 @@ from typing import List, Optional
 
 from sqlmodel import Field, Relationship, Session, SQLModel, create_engine
 
+from src.auth.models import UserTable
+
 
 class Team(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -21,7 +23,7 @@ class Hero(SQLModel, table=True):
     team: Optional[Team] = Relationship(back_populates="heroes")
 
 
-sqlite_file_name = "root:12345678@127.0.0.1:3306/client"
+sqlite_file_name = "root:123456789@127.0.0.1:3306/client"
 sqlite_url = f"mysql+mysqlconnector://{sqlite_file_name}"
 
 engine = create_engine(sqlite_url, echo=True)
