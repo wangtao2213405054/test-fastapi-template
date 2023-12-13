@@ -2,5 +2,9 @@ fastapi==0.104.*
 uvicorn[standard]==0.24.*
 pydantic_settings==2.1.*
 python-jose==3.3.*
+sqlmodel==0.0.14
 sqlalchemy==2.0.*
 bcrypt==4.1.*
+sentry_sdk==1.39.*
+asyncmy==0.2.9
+redis==5.0.*

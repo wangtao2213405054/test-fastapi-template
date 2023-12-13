@@ -2,6 +2,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi import HTTPException, status
 from src.schemas import ResponseModel
+from fastapi.openapi.docs import get_swagger_ui_html
+
 
 
 import uvicorn

@@ -1,4 +1,5 @@
-from datetime import datetime
+
+from datetime import datetime, timedelta
 from typing import Any, TypeVar, Generic
 from zoneinfo import ZoneInfo
 
@@ -46,3 +47,10 @@ class ResponseModel(CustomModel, Generic[T]):
     code: int = Field(200, description="状态码")
     message: str = Field("接口请求成功", description="消息体")
     data: T = Field(None, description="返回的数据信息")
+
+
+class RedisData(CustomModel):
+    """ Redis 数据模型 """
+    key: bytes | str
+    value: bytes | str
+    ttl: int | timedelta | None = None
