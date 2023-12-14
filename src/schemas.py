@@ -6,7 +6,6 @@ from zoneinfo import ZoneInfo
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, ConfigDict, model_validator, Field
 
-
 T = TypeVar("T")
 
 
@@ -24,19 +23,28 @@ class CustomModel(BaseModel):
         populate_by_name=True,
     )
 
-    @classmethod
+    # noinspection PyNestedDecorators
     @model_validator(mode="before")
+    @classmethod
     def set_null_microseconds(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """
+        将继承与此中包含 datetime 类中的微秒部分置为 0
+        :param data:
+        :return:
+        """
         datetime_fields = {
             k: v.replace(microsecond=0)
             for k, v in data.items()
-            if isinstance(k, datetime)
+            if isinstance(v, datetime)
         }
 
         return {**data, **datetime_fields}
 
-    def serializable_dict(self, **kwargs):
-        """Return a dict which contains only serializable fields."""
+    def serializable_dict(self):
+        """
+        返回一个兼容 JSON 类型的字典
+        :return:
+        """
         default_dict = self.model_dump()
 
         return jsonable_encoder(default_dict)

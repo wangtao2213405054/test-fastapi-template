@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
+from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY, HTTP_200_OK
 
 from src.exceptions import DetailedHTTPException
 from src.schemas import ResponseModel
@@ -31,7 +32,7 @@ async def exception_handler(_, exc: DetailedHTTPException):
     :return:
     """
     return JSONResponse(
-        status_code=200,
+        status_code=HTTP_200_OK,
         content=jsonable_encoder(ResponseModel(code=exc.STATUS_CODE, message=exc.DETAIL))
     )
 
@@ -40,14 +41,19 @@ async def exception_handler(_, exc: DetailedHTTPException):
 async def validation_handler(_, exc: RequestValidationError):
     """
     对入参错误异常做了转发, 当前响应码为 200, 并将错误信息返回至data 中
+    jsonable_encoder 会将数据类型转换成 JSON兼容类型, exc的 ctx 可能会出现对象, 我们需要调用这个方法来兼容
     :param _: FastApi <Request> 对象
     :param exc: <RequestValidationError>类
     :return:
     """
     return JSONResponse(
-        status_code=200,
+        status_code=HTTP_200_OK,
         content=jsonable_encoder(
-            ResponseModel(code=422, message="请求参数错误", data=dict(body=exc.body, detail=exc.errors()))
+            ResponseModel(
+                code=HTTP_422_UNPROCESSABLE_ENTITY,
+                message="请求参数错误",
+                data=dict(body=exc.body, detail=jsonable_encoder(exc.errors()))
+            )
         )
     )
 

@@ -10,8 +10,6 @@ from src.database import fetch_one
 from src.auth.models import UserTable
 from sqlmodel import select
 
-from src.auth.exceptions import AuthRequired
-
 
 router = APIRouter(prefix="/auth")
 

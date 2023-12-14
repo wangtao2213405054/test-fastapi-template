@@ -1,5 +1,5 @@
 
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncContextManager
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -17,7 +17,7 @@ from src.schemas import RedisData
 # Mysql 数据库地址
 DATABASE_URL = str(settings.DATABASE_URL)
 
-engine = create_async_engine(DATABASE_URL)
+engine = create_async_engine(DATABASE_URL, echo=settings.ENVIRONMENT.is_debug)
 metadata = MetaData(naming_convention=DB_NAMING_CONVENTION)
 
 # Redis
@@ -61,7 +61,7 @@ async def execute(sql: Insert | Update) -> None:
 
 
 @asynccontextmanager
-async def lifespan(_application: FastAPI) -> AsyncGenerator:
+async def lifespan(_application: FastAPI) -> AsyncContextManager:
     """
     FastAPI 启动时挂载 Redis 停止时释放 Redis
     :param _application: FastAPI 应用
