@@ -58,7 +58,7 @@ class MenuInfoResponse(MenuBase):
 
 class MenuListResponse(MenuBase):
     id: int
-    children: list[MenuTable] | None
+    children: list[MenuTable]
 
 
 class UserBase(BaseModel):
