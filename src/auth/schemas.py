@@ -1,11 +1,13 @@
 
-from src.schemas import CustomModel
-
 from fastapi import Body
-
-from pydantic import Field, field_validator
-
 import re
+
+from pydantic import Field, field_validator, EmailStr
+from sqlmodel import select
+
+from src.schemas import CustomModel
+from src.database import fetch_one
+from src.auth.models import MenuBase, MenuTable
 
 
 STRONG_PASSWORD_PATTERN = re.compile(r"^(?=.*\d)(?=.*[!@#$%^&*])[\w!@#$%^&*]{6,128}$")
@@ -18,7 +20,7 @@ class JWTData(CustomModel):
 
 
 class AuthLoginRequest(CustomModel):
-    username: str = Body(..., description="用户名", min_length=6, max_length=128)
+    username: EmailStr = Body(..., description="用户名", min_length=6, max_length=128)
     password: str = Body(..., description="密码", min_length=6, max_length=128)
 
     # noinspection PyNestedDecorators
@@ -34,3 +36,15 @@ class AuthLoginRequest(CustomModel):
 class AccessTokenResponse(CustomModel):
     accessToken: str
     refreshToken: str
+
+
+class AuthGetMenuRequest(CustomModel):
+    nodeId: int = Body(None, description="节点ID")
+    keyword: str = Body("", description="关键字查询")
+
+
+class AuthAddMenuRequest(CustomModel):
+    id: int | None = Body(None, description="菜单ID")
+    name: str = Body(..., description="菜单名称")
+    identifier: str = Body(..., description="菜单标识符")
+    nodeId: int = Body(0, description="所属节点ID")

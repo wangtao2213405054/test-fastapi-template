@@ -1,15 +1,17 @@
 # _author: Coke
 # _date: 2023/12/11 23:00
 
-from sqlmodel import Field, Relationship
+from sqlmodel import Field, Relationship, select
+from pydantic import field_validator
 
 from src.models import BaseModel
+from src.database import fetch_one
 
 
 class GeneralBase(BaseModel):
     """ 通用数据模型 """
     name: str = Field(index=True)  # 名称
-    identifier: str = Field(index=True, unique=True)  # 标识符
+    identifier: str = Field(index=True, unique=True, nullable=False)  # 标识符
 
 
 class RoleBase(GeneralBase):
@@ -37,7 +39,7 @@ class RoleRead(RoleBase):
 
 class MenuBase(GeneralBase):
     """ 权限菜单数据库模型 """
-    nodeId: int = Field(0)  # 节点ID
+    nodeId: int = Field(0, nullable=False, index=True)  # 节点ID
 
 
 class MenuTable(MenuBase, table=True):
@@ -50,16 +52,20 @@ class MenuCreate(MenuBase):
     """ 用于创建新的菜单实例 """
 
 
-class MenuRead(MenuBase):
-    """ 读取菜单实例 """
+class MenuInfoResponse(MenuBase):
     id: int
+
+
+class MenuListResponse(MenuBase):
+    id: int
+    children: list[MenuTable] | None
 
 
 class UserBase(BaseModel):
     """ 用户数据模型 """
     name: str = Field(index=True)  # 名称
-    email: str = Field(index=True, nullable=True, unique=True)  # 邮箱 不可重复
-    mobile: str = Field(index=True, unique=True, nullable=False)  # 手机号 不可重复
+    email: str = Field(index=True, nullable=False, unique=True)  # 邮箱 不可重复
+    mobile: str = Field(index=True, nullable=False, unique=True)  # 手机号 不可重复
     avatarUrl: str | None = None  # 头像
     state: bool = Field(True)  # 用户在职状态
     nodeId: int  # 节点

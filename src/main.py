@@ -1,17 +1,17 @@
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
-from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY, HTTP_200_OK
 
 from src.exceptions import DetailedHTTPException
 from src.schemas import ResponseModel
 from src.config import app_configs, settings
-from src.database import lifespan
+from src.cache import lifespan
 from starlette.middleware.cors import CORSMiddleware
 
 from src.auth.router import router as auth_router
+from src.websocketio import socket_app
 
 import sentry_sdk
 import uvicorn
@@ -21,36 +21,43 @@ import uvicorn
 app = FastAPI(**app_configs, lifespan=lifespan)
 prefix = "/api/v1/client"
 
+# 添加 socketio 事件处理程序
+app.mount("/socket", socket_app)
+
 
 # 错误捕获与转发
 @app.exception_handler(DetailedHTTPException)
-async def exception_handler(_, exc: DetailedHTTPException):
+async def exception_handler(_request, exc: DetailedHTTPException):
     """
     对所有主动抛出的异常做了转发, 所有的状态码都是 200, 并将详细信息填写入返回值信息中
-    :param _: FastApi <Request> 对象
+    :param _request: FastApi <Request> 对象
     :param exc: 错误信息, 需要继承<DetailedHTTPException>类
     :return:
     """
     return JSONResponse(
-        status_code=HTTP_200_OK,
-        content=jsonable_encoder(ResponseModel(code=exc.STATUS_CODE, message=exc.DETAIL))
+        status_code=status.HTTP_200_OK,
+        content=jsonable_encoder(ResponseModel(
+            code=exc.STATUS_CODE,
+            message=exc.DETAIL,
+            data=exc.ERRORS if settings.ENVIRONMENT.is_debug else None  # 只有在 DEBUG 模式才返回详细的错误信息
+        ))
     )
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_handler(_, exc: RequestValidationError):
+async def validation_handler(_request: Request, exc: RequestValidationError):
     """
     对入参错误异常做了转发, 当前响应码为 200, 并将错误信息返回至data 中
     jsonable_encoder 会将数据类型转换成 JSON兼容类型, exc的 ctx 可能会出现对象, 我们需要调用这个方法来兼容
-    :param _: FastApi <Request> 对象
+    :param _request: FastApi <Request> 对象
     :param exc: <RequestValidationError>类
     :return:
     """
     return JSONResponse(
-        status_code=HTTP_200_OK,
+        status_code=status.HTTP_200_OK,
         content=jsonable_encoder(
             ResponseModel(
-                code=HTTP_422_UNPROCESSABLE_ENTITY,
+                code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 message="请求参数错误",
                 data=dict(body=exc.body, detail=jsonable_encoder(exc.errors()))
             )

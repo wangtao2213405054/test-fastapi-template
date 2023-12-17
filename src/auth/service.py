@@ -3,30 +3,65 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from pydantic import UUID4
-from sqlalchemy import insert, select
+from sqlmodel import col, select, insert, or_
 
 from src import utils
 from src.auth.config import auth_config
 from src.auth.exceptions import InvalidCredentials
-from src.auth.schemas import AuthUser
 from src.auth.security import check_password, hash_password
-from src.database import auth_user, execute, fetch_one, refresh_tokens
+from src.auth.models import MenuTable, MenuCreate, MenuListResponse
+from src.database import execute, fetch_one, insert_one, fetch_all
 
 
-async def create_user(user: AuthUser) -> dict[str, Any] | None:
-    insert_query = (
-        insert(auth_user)
-        .values(
-            {
-                "email": user.email,
-                "password": hash_password(user.password),
-                "created_at": datetime.now(),
-            }
+async def create_menu(name: str, identifier: str, node_id: int) -> MenuListResponse | None:
+    """
+    创建一个权限菜单
+    :param name: 菜单名称
+    :param identifier: 菜单标识符
+    :param node_id: 节点ID
+    :return:
+    """
+    return await insert_one(MenuTable, MenuCreate(name=name, identifier=identifier, nodeId=node_id))
+
+
+async def get_menu_tree(node_id: int, keyword: str = "") -> list[MenuListResponse]:
+    """
+    递归遍历所有子菜单信息
+    :param node_id: 开始节点
+    :param keyword: 关键字匹配
+    :return:
+    """
+    menu_dict_list: list[MenuListResponse] = []
+
+    menu_list: list[MenuTable] = await fetch_all(
+        select(MenuTable).where(
+            MenuTable.nodeId == node_id,
+            or_(col(MenuTable.name).like(f'%{keyword}%'), col(MenuTable.identifier).like(f'%{keyword}%'))
         )
-        .returning(auth_user)
     )
 
-    return await fetch_one(insert_query)
+    for item in menu_list:
+        children = await get_menu_tree(item.id)
+        items = MenuListResponse(children=children, **item.model_dump())
+        menu_dict_list.append(items)
+
+    return menu_dict_list
+
+
+# async def create_user(user: AuthUser) -> dict[str, Any] | None:
+#     insert_query = (
+#         insert(auth_user)
+#         .values(
+#             {
+#                 "email": user.email,
+#                 "password": hash_password(user.password),
+#                 "created_at": datetime.now(),
+#             }
+#         )
+#         .returning(auth_user)
+#     )
+#
+#     return await fetch_one(insert_query)
 
 
 async def get_user_by_id(user_id: int) -> dict[str, Any] | None:
@@ -76,12 +111,12 @@ async def expire_refresh_token(refresh_token_uuid: UUID4) -> None:
     await execute(update_query)
 
 
-async def authenticate_user(auth_data: AuthUser) -> dict[str, Any]:
-    user = await get_user_by_email(auth_data.email)
-    if not user:
-        raise InvalidCredentials()
-
-    if not check_password(auth_data.password, user["password"]):
-        raise InvalidCredentials()
-
-    return user
+# async def authenticate_user(auth_data: AuthUser) -> dict[str, Any]:
+#     user = await get_user_by_email(auth_data.email)
+#     if not user:
+#         raise InvalidCredentials()
+#
+#     if not check_password(auth_data.password, user["password"]):
+#         raise InvalidCredentials()
+#
+#     return user
