@@ -5,7 +5,7 @@ from sqlmodel import Field, Relationship, select
 from pydantic import field_validator
 
 from src.models import BaseModel
-from src.database import fetch_one
+# from src.database import fetch_one
 
 
 class GeneralBase(BaseModel):

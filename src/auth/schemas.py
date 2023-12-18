@@ -43,8 +43,8 @@ class AuthGetMenuRequest(CustomModel):
     keyword: str = Body("", description="关键字查询")
 
 
-class AuthAddMenuRequest(CustomModel):
-    id: int | None = Body(None, description="菜单ID")
+class AuthEditMenuRequest(CustomModel):
+    id: int = Body(None, description="菜单ID")
     name: str = Body(..., description="菜单名称")
     identifier: str = Body(..., description="菜单标识符")
     nodeId: int = Body(0, description="所属节点ID")

@@ -9,18 +9,27 @@ from src import utils
 from src.auth.config import auth_config
 from src.auth.exceptions import InvalidCredentials
 from src.auth.security import check_password, hash_password
-from src.auth.models import MenuTable, MenuCreate, MenuListResponse
-from src.database import execute, fetch_one, insert_one, fetch_all
+from src.auth.models import MenuTable, MenuCreate, MenuListResponse, MenuInfoResponse
+from src.database import execute, fetch_one, insert_one, fetch_all, update_one
 
 
-async def create_menu(name: str, identifier: str, node_id: int) -> MenuListResponse | None:
+async def edit_menu(*, menu_id: int, name: str, identifier: str, node_id: int) -> MenuInfoResponse:
     """
-    创建一个权限菜单
+    创建/更新 一个权限菜单
+    :param menu_id: 权限菜单ID 如何为真则视为修改
     :param name: 菜单名称
     :param identifier: 菜单标识符
     :param node_id: 节点ID
     :return:
     """
+    # 修改
+    if menu_id:
+        menu: MenuInfoResponse = await fetch_one(select(MenuTable).where(MenuTable.id == menu_id))
+        menu.name = name
+        menu.identifier = identifier
+        menu.nodeId = node_id
+        return await update_one(menu)
+
     return await insert_one(MenuTable, MenuCreate(name=name, identifier=identifier, nodeId=node_id))
 
 

@@ -1,21 +1,25 @@
 
 from fastapi import APIRouter
-from fastapi.encoders import jsonable_encoder
 from typing import Any
 
 from src.auth.schemas import (
     AuthLoginRequest,
     AccessTokenResponse,
     AuthGetMenuRequest,
-    AuthAddMenuRequest
+    AuthEditMenuRequest
 )
-from src.auth.service import get_menu_tree, create_menu
+from src.auth.service import get_menu_tree, edit_menu
 from src.schemas import ResponseModel
 from src.auth import jwt
 
 from src.database import fetch_one, insert_one
 
-from src.auth.models import UserTable, UserCreate, MenuInfoResponse, MenuListResponse
+from src.auth.models import (
+    UserTable,
+    UserCreate,
+    MenuInfoResponse,
+    MenuListResponse
+)
 from src.websocketio import socket
 from sqlmodel import select
 
@@ -66,17 +70,19 @@ async def menu_list(body: AuthGetMenuRequest) -> ResponseModel[list[MenuListResp
 
 
 @router.post("/menu/edit")
-async def menu_edit(body: AuthAddMenuRequest) -> ResponseModel[MenuInfoResponse]:
+async def menu_edit(body: AuthEditMenuRequest) -> ResponseModel[MenuInfoResponse]:
     """
-    添加/编辑 一个权限菜单\f
+    添加/更新 一个权限菜单\f
     :param body: AuthAddMenuRequest<对象>
     :return:
     """
-    menu = await create_menu(name=body.name, identifier=body.identifier, node_id=body.nodeId)
+    menu = await edit_menu(
+        menu_id=body.id, name=body.name, identifier=body.identifier, node_id=body.nodeId
+    )
     return ResponseModel(data=menu)
 
 
-@socket.on("connect")
+@socket.event
 def connect(sid: str, environ: dict[str, Any]):
     """
     socketio 连接事件

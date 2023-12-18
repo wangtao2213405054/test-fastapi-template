@@ -1,5 +1,6 @@
 
 from typing import Any, Type, TypeVar
+from datetime import datetime
 
 from fastapi.encoders import jsonable_encoder
 
@@ -10,7 +11,7 @@ from sqlmodel import SQLModel
 
 from src.config import settings
 from src.constants import DB_NAMING_CONVENTION
-from src.exceptions import DatabaseConflictError
+from src.exceptions import DatabaseConflictError, NotFound
 
 T = TypeVar("T", bound=SQLModel)
 
@@ -43,7 +44,7 @@ def catch_database_exceptions(func):
 
 
 @catch_database_exceptions
-async def fetch_one(sql: Select | Insert | Update) -> dict[str, Any] | None:
+async def fetch_one(sql: Select | Insert | Update) -> T:
     """
     处理数据库单条数据
     :param sql: SQLAlchemy 语句
@@ -51,7 +52,11 @@ async def fetch_one(sql: Select | Insert | Update) -> dict[str, Any] | None:
     """
     async with async_session() as session:
         results = await session.execute(sql)
-        return results.scalars().first()
+        data = results.scalars().first()
+        if not data:
+            raise NotFound
+
+        return data
 
 
 @catch_database_exceptions
@@ -90,3 +95,21 @@ async def insert_one(table: Type[SQLModel], model: SQLModel) -> T:
         session.add(data)
         await session.commit()
         return data
+
+
+@catch_database_exceptions
+async def update_one(table: SQLModel) -> T:
+    """
+    向表中更新一条数据
+    :param table: 要更新的数据模型
+    :return: 返回更新后的数据模型
+    """
+    async with async_session() as session:
+
+        if hasattr(table, "updateTime"):
+            table.updateTime = datetime.now()
+
+        session.add(table)
+        await session.commit()
+        await session.refresh(table)
+        return table
