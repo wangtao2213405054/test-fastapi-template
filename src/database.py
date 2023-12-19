@@ -44,7 +44,7 @@ def catch_database_exceptions(func):
 
 
 @catch_database_exceptions
-async def fetch_one(sql: Select | Insert | Update) -> T:
+async def fetch_one(sql: Select | Insert | Update) -> T | None:
     """
     处理数据库单条数据
     :param sql: SQLAlchemy 语句
@@ -52,9 +52,21 @@ async def fetch_one(sql: Select | Insert | Update) -> T:
     """
     async with async_session() as session:
         results = await session.execute(sql)
+        return results.scalars().first()
+
+
+@catch_database_exceptions
+async def select_one(sql: Select) -> T:
+    """
+    查询单条数据, 如果未查询到则抛出 <NotFound> 异常
+    :param sql: 查询语句
+    :return:
+    """
+    async with async_session() as session:
+        results = await session.execute(sql)
         data = results.scalars().first()
         if not data:
-            raise NotFound
+            raise NotFound()
 
         return data
 

@@ -6,11 +6,12 @@ from pydantic import UUID4
 from sqlmodel import col, select, insert, or_
 
 from src import utils
+from src.exceptions import NotFound
 from src.auth.config import auth_config
 from src.auth.exceptions import InvalidCredentials
 from src.auth.security import check_password, hash_password
 from src.auth.models import MenuTable, MenuCreate, MenuListResponse, MenuInfoResponse
-from src.database import execute, fetch_one, insert_one, fetch_all, update_one
+from src.database import execute, fetch_one, insert_one, fetch_all, update_one, select_one
 
 
 async def edit_menu(*, menu_id: int, name: str, identifier: str, node_id: int) -> MenuInfoResponse:
@@ -24,7 +25,7 @@ async def edit_menu(*, menu_id: int, name: str, identifier: str, node_id: int) -
     """
     # 修改
     if menu_id:
-        menu: MenuInfoResponse = await fetch_one(select(MenuTable).where(MenuTable.id == menu_id))
+        menu: MenuInfoResponse = await select_one(select(MenuTable).where(MenuTable.id == menu_id))
         menu.name = name
         menu.identifier = identifier
         menu.nodeId = node_id
