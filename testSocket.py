@@ -6,7 +6,7 @@ broadcast backend.
 import logging
 import time
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import Body, FastAPI, HTTPException
 from pydantic import BaseModel
@@ -57,7 +57,7 @@ class Room:
         return len(self._users) == 0
 
     @property
-    def user_list(self) -> List[str]:
+    def user_list(self) -> list[str]:
         """Return a list of IDs for connected users.
         """
         return list(self._users)
@@ -196,12 +196,12 @@ class UserListResponse(BaseModel):
     """Response model for /list_users endpoint.
     """
 
-    users: List[str]
+    users: list[str]
 
 
 @app.get("/users", response_model=UserListResponse)
 async def list_users(request: Request):
-    """List all users connected to the room.
+    """list all users connected to the room.
     """
     room: Optional[Room] = request.get("room")
     if room is None:
@@ -227,7 +227,7 @@ async def get_user_info(request: Request, user_id: str):
 
 @app.post("/users/{user_id}/kick", response_model=UserListResponse)
 async def kick_user(request: Request, user_id: str):
-    """List all users connected to the room.
+    """list all users connected to the room.
     """
     room: Optional[Room] = request.get("room")
     if room is None:

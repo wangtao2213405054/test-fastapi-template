@@ -6,24 +6,26 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.concurrency import iterate_in_threadpool
 
 from src.exceptions import DetailedHTTPException, status, message
 from src.models.types import ResponseModel
 from src.config import app_configs, settings
 from src.cache import lifespan
-from starlette.middleware.cors import CORSMiddleware
-from starlette.concurrency import iterate_in_threadpool
 
 from src.api.auth.router import router as auth_router
 from src.websocketio import socket_app
-from src.utils import analysis_json
-from typing import Callable, Awaitable
+from src.utils import analysis_json, join_path, create_dir
+from typing import Callable, Awaitable, Union
 
 import sentry_sdk
 import traceback
 import uvicorn
 import logging
 import time
+import uuid
+import os
 
 
 # 初始化 Fast Api 并写入接口的 prefix
@@ -38,20 +40,27 @@ app.mount("/socket", socket_app)
 @app.exception_handler(Exception)
 async def passive_exception_handler(_request: Request, exc: Exception):
     """
-    对非主动抛出的异常进行捕获, 外部状态码为 200, 内部状态码
+
     :param _request: FastApi <Request> 对象
     :param exc: 错误对象
-    :return: 返回错误的堆栈信息
+    :return: 返回错误的堆栈信息、错误信息及标识符. 标识符应用与查找日志信息
     """
+
+    uuid4 = uuid.uuid4()
+
+    error_info = dict(
+        error=str(exc),
+        sign=str(uuid4),
+        stack=traceback.format_exception(exc)
+    )
+    logging.exception(f"Exception ID: {uuid4}")
+
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content=jsonable_encoder(ResponseModel(
             code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             message=message.HTTP_500_INTERNAL_SERVER_ERROR,
-            data=dict(
-                error=str(exc),
-                stack=traceback.format_exception(exc)
-            ) if settings.ENVIRONMENT.is_debug else None
+            data=error_info if settings.ENVIRONMENT.is_debug else str(uuid4)
         ))
     )
 
@@ -98,7 +107,8 @@ async def validation_handler(_request: Request, exc: RequestValidationError):
     )
 
 
-# 添加 CORS（跨源资源共享）中间件
+# 添加 CORS（跨源资源共享）中间件 忽略 PyCharm 的警告信息, 由于他们是正确的
+# noinspection PyTypeChecker
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -110,26 +120,33 @@ app.add_middleware(
 
 
 @app.middleware("http")
-async def add_logger(
+async def http_middleware(
         request: Request,
-        call_next: Callable[[Request], Awaitable[StreamingResponse]]
-) -> StreamingResponse:
+        callback: Callable[[Request], Awaitable[StreamingResponse]]
+) -> Union[JSONResponse, StreamingResponse]:
+    """
+    HTTP 中间件, 用于记录请求信息和响应信息
+    :param request: 请求信息 FastAPI <Request> 对象
+    :param callback: 回调函数
+    :return:
+    """
 
     start_time = time.time()
 
     # request
     body = await request.body()
-    logging.info(f"{request.client.host}:{request.client.port} - \"{request.method} {request.url.path}\"")
+    logging.info(f"Request Info: {request.client.host}:{request.client.port} - \"{request.method} {request.url.path}\"")
     logging.debug(f"Request Headers: {request.headers.items()}")
     logging.info(f"Request Body: {''.join(body.decode('utf-8').split())}")
 
     # response
-    response = await call_next(request)
+    response = await callback(request)
+
     response_body = [chunk async for chunk in response.body_iterator]
     response.body_iterator = iterate_in_threadpool(iter(response_body))
 
     logging.info(f"Response Body: {response_body[0].decode('utf-8')}")
-    logging.info(f"Response Timeout: {round((time.time() - start_time) * 1000, 3)} ms")
+    logging.info(f"Response Time: {round((time.time() - start_time) * 1000, 3)} ms")
 
     return response
 
@@ -141,6 +158,13 @@ if settings.ENVIRONMENT.is_deployed:
         environment=settings.ENVIRONMENT,
     )
 
+# 日志配置
+LOG_DIR_PATH = create_dir(join_path("logs"))
+LOG_CONFIG = analysis_json(join_path("resource", "logging.json"))
+LOG_CONFIG["root"]["level"] = settings.LOGGING_LEVEL
+LOG_CONFIG["handlers"]["file"]["filename"] = os.path.join(LOG_DIR_PATH, "log.log")
+
+
 # 路由注册区域
 app.include_router(auth_router, prefix=prefix, tags=["认证"])
 
@@ -149,5 +173,5 @@ if __name__ == '__main__':
     uvicorn.run(
         "src.main:app",
         reload=True,
-        log_config=analysis_json("./resource/logging.json")
+        log_config=LOG_CONFIG
     )

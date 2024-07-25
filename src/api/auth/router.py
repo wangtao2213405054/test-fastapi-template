@@ -3,7 +3,7 @@
 # _description: 用户验证相关路由
 
 from fastapi import APIRouter
-from typing import Any, List
+from typing import Any
 
 from .models.types import (
     AuthLoginRequest, AccessTokenResponse,
@@ -124,7 +124,7 @@ async def role_edit(body: AuthEditRoleRequest) -> ResponseModel:
 
 
 @router.post("/role/list")
-async def role_list(body: AuthGetRoleListRequest) -> ResponseModel[List[RoleInfoResponse]]:
+async def role_list(body: AuthGetRoleListRequest) -> ResponseModel[list[RoleInfoResponse]]:
     """
     获取角色列表\f
     :param body: <AuthGetRoleListRequest> 对象
@@ -162,7 +162,7 @@ async def affiliation_edit(body: AuthEditAffiliationRequest) -> ResponseModel[Af
 
 
 @router.post("/affiliation/list")
-async def affiliation_list(body: AuthGetAffiliationListRequest) -> ResponseModel[List[AffiliationListResponse]]:
+async def affiliation_list(body: AuthGetAffiliationListRequest) -> ResponseModel[list[AffiliationListResponse]]:
     """
     获取所属关系列表\f
     :param body: <AuthGetAffiliationListRequest> 对象

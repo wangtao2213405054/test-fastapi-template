@@ -1,6 +1,6 @@
 
 from datetime import datetime, timedelta
-from typing import Any, List
+from typing import Any
 
 from pydantic import UUID4
 from sqlmodel import select, or_
@@ -48,16 +48,16 @@ async def delete_affiliation(*, affiliation_id) -> AffiliationInfoResponse:
     return await delete_one(select(AffiliationTable).where(AffiliationTable.id == affiliation_id))
 
 
-async def get_affiliation_tree(*, node_id: int, keyword: str = "") -> List[AffiliationListResponse]:
+async def get_affiliation_tree(*, node_id: int, keyword: str = "") -> list[AffiliationListResponse]:
     """
     获取当前的所属关系树
     :param node_id: 节点ID
     :param keyword: 关键字查询
     :return:
     """
-    affiliation_dict_list: List[AffiliationListResponse] = []
+    affiliation_dict_list: list[AffiliationListResponse] = []
 
-    affiliation_list: List[AffiliationInfoResponse] = await fetch_all(
+    affiliation_list: list[AffiliationInfoResponse] = await fetch_all(
         select(AffiliationTable).where(
             AffiliationTable.nodeId == node_id,
             like(field=AffiliationTable.name, keyword=keyword)
@@ -101,16 +101,16 @@ async def delete_menu(*, menu_id: int) -> MenuInfoResponse:
     return await delete_one(select(MenuTable).where(MenuTable.id == menu_id))
 
 
-async def get_menu_tree(*, node_id: int, keyword: str = "") -> List[MenuListResponse]:
+async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResponse]:
     """
     递归遍历所有子菜单信息
     :param node_id: 开始节点
     :param keyword: 关键字匹配
     :return:
     """
-    menu_dict_list: List[MenuListResponse] = []
+    menu_dict_list: list[MenuListResponse] = []
 
-    menu_list: List[MenuInfoResponse] = await fetch_all(
+    menu_list: list[MenuInfoResponse] = await fetch_all(
         select(MenuTable).where(
             MenuTable.nodeId == node_id,
             or_(like(field=MenuTable.name, keyword=keyword), like(field=MenuTable.identifier, keyword=keyword))
@@ -125,7 +125,7 @@ async def get_menu_tree(*, node_id: int, keyword: str = "") -> List[MenuListResp
     return menu_dict_list
 
 
-async def edit_role(*, role_id: int, name: str, identifier: str, identifier_list: List[str]) -> RoleInfoResponse:
+async def edit_role(*, role_id: int, name: str, identifier: str, identifier_list: list[str]) -> RoleInfoResponse:
     """
     创建/修改 一个角色信息
     :param role_id: 角色ID
@@ -145,7 +145,7 @@ async def edit_role(*, role_id: int, name: str, identifier: str, identifier_list
     return await insert_one(RoleTable, RoleCreate(name=name, identifier=identifier, identifier_list=identifier_list))
 
 
-async def get_role_list(page: int, size: int, *, keyword: str = "") -> List[RoleInfoResponse]:
+async def get_role_list(page: int, size: int, *, keyword: str = "") -> list[RoleInfoResponse]:
     """
     获取角色信息列表
     :param page: 当前页

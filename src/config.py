@@ -1,3 +1,7 @@
+# _author: Coke
+# _date: 2024/7/25 22:16
+# _description: 项目依赖项
+
 from typing import Any
 
 from pydantic import MySQLDsn, RedisDsn, model_validator
@@ -21,6 +25,8 @@ class Config(BaseSettings):
     CORS_HEADERS: list[str]  # 允许的标头列表
 
     APP_VERSION: str = "1"  # 当前的应用版本
+
+    LOGGING_LEVEL: str = "INFO"  # 日志等级
 
     @model_validator(mode="after")
     def validate_sentry_non_local(self) -> "Config":
