@@ -1,4 +1,4 @@
-from src.auth.constants import ErrorCode
+from src.api.auth.constants import ErrorCode
 from src.exceptions import NotAuthenticated, PermissionDenied
 
 

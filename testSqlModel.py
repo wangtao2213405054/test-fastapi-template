@@ -1,9 +1,9 @@
 
 from sqlmodel import SQLModel, create_engine, Session, select
-from src.auth.models import UserTable, UserCreate, MenuTable, MenuCreate, RoleTable, RoleCreate, UserRead
+from src.api.auth.models.models import UserTable, UserCreate, MenuTable, MenuCreate, RoleTable, RoleCreate, UserRead, AffiliationTable
 
 
-sqlite_file_name = "root:123456789@127.0.0.1:3306/client"
+sqlite_file_name = "root:12345678@127.0.0.1:3306/client"
 sqlite_url = f"mysql+mysqlconnector://{sqlite_file_name}"
 
 engine = create_engine(sqlite_url, echo=True)
@@ -28,20 +28,29 @@ def main():
 
         role = RoleCreate(
             name="管理员",
-            identifier="admin"
+            identifier="admin",
+            identifier_list=["role"]
         )
         db_role = RoleTable.model_validate(role)
         session.add(db_role)
         session.commit()
         session.refresh(db_role)
 
+        affiliation = AffiliationTable(
+            name="字节跳动"
+        )
+        db_affiliation = AffiliationTable.model_validate(affiliation)
+        session.add(db_affiliation)
+        session.commit()
+        session.refresh(db_affiliation)
+
         user = UserCreate(
             name="王涛",
             email="2213405054@qq.com",
             mobile="13520421043",
             password="1123",
-            nodeId=1,
-            roleId=db_role.id
+            roleId=db_role.id,
+            affiliationId=db_affiliation.id
         )
 
         db_user = UserTable.model_validate(user)
@@ -50,7 +59,7 @@ def main():
 
         statement = select(RoleTable)
         results = session.exec(statement).one()
-        print(results.users, 'test')
+        print(results.users, 'tests')
 
 
 if __name__ == "__main__":

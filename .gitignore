@@ -37,7 +37,7 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Unit test / coverage reports
+# Unit tests / coverage reports
 htmlcov/
 .tox/
 .nox/
@@ -137,3 +137,6 @@ node_modules/
 backup.dump
 backup.dump.gz
 .vscode
+
+# test file
+test*.py

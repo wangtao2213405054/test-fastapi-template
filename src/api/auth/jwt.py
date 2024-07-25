@@ -5,9 +5,9 @@ from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 
-from src.auth.config import auth_config
-from src.auth.exceptions import AuthorizationFailed, AuthRequired, InvalidToken
-from src.auth.schemas import JWTData
+from src.api.auth.config import auth_config
+from src.api.auth.exceptions import AuthorizationFailed, AuthRequired, InvalidToken
+from .models.types import JWTData
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/users/tokens", auto_error=False)
 
@@ -24,7 +24,7 @@ def create_access_token(
     :return: Token
     """
     jwt_data = {
-        "sub": str(user.get("id")),
+        "sub": user.get("id"),
         "exp": datetime.now() + expires_delta,
         "is_admin": user["is_admin"],
     }

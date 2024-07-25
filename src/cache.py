@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from redis.asyncio import Redis
 import redis.asyncio as aioredis
 
-from src.schemas import RedisData
+from src.models.types import RedisData
 from src.config import settings
 
 # Redis

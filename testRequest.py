@@ -1,15 +1,10 @@
-# _author: Coke
-# _date: 2023/12/11 21:31
+import bcrypt
+import re
 
-import requests
-
-base_url = "http://localhost:8000"
+STRONG_PASSWORD_PATTERN = re.compile(r"^(?=.*\d)(?=.*[!@#$%^&*])[\w!@#$%^&*]{6,128}$")
 
 
-body = dict(
-    username="admin1",
-    password=""
-)
-data = requests.request("POST", base_url + "/api/v1/client/auth/user/login", json=body)
+# 原始密码
+password = "Wc1!sss222"
 
-print(data.json())
+print(bool(re.match(STRONG_PASSWORD_PATTERN, password)))

@@ -33,7 +33,7 @@ class Config(BaseSettings):
 
 settings = Config()
 
-app_configs: dict[str, Any] = {"title": "App API"}
+app_configs: dict[str, Any] = {"title": "接口文档"}
 if settings.ENVIRONMENT.is_deployed:
     app_configs["root_path"] = f"/v{settings.APP_VERSION}"
 

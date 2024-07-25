@@ -7,21 +7,23 @@ from time import time
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, ConfigDict, model_validator, Field
 
+import re
+
 T = TypeVar("T")
 
 
 def convert_datetime_to_gmt(dt: datetime) -> str:
     if not dt.tzinfo:
         dt = dt.replace(tzinfo=ZoneInfo("UTC"))
-
-    return dt.strftime("%Y-%m-%dT%H:%M:%S%z")
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
 class CustomModel(BaseModel):
     """ 通用模型 """
     model_config = ConfigDict(
+        from_attributes=True,
         json_encoders={datetime: convert_datetime_to_gmt},
-        populate_by_name=True,
+        populate_by_name=True
     )
 
     # noinspection PyNestedDecorators
@@ -41,7 +43,7 @@ class CustomModel(BaseModel):
 
         return {**data, **datetime_fields}
 
-    def serializable_dict(self):
+    def serializable_dict(self) -> dict:
         """
         返回一个兼容 JSON 类型的字典
         :return:
@@ -49,6 +51,44 @@ class CustomModel(BaseModel):
         default_dict = self.model_dump()
 
         return jsonable_encoder(default_dict)
+
+    @property
+    def params(self) -> dict:
+        """
+        将 驼峰体命名风格 转换为 下换线命名模式
+        适用于请求体和入参相同的情况
+        并不推荐使用, 目前是基于 FastApi Body 中的过滤才可以使用
+        :return:
+        """
+        body = self.serializable_dict()
+
+        def camel_to_snake_case(name):
+            # 使用正则表达式将驼峰命名转换为下划线命名
+            s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+            return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+        return {camel_to_snake_case(k): v for k, v in body.items()} if isinstance(body, dict) else {}
+
+
+class PageRequestModel(CustomModel):
+    """ 通用分页请求 """
+    page: int = Field(1, description="当前页")
+    pageSize: int = Field(20, description="每页的数据数量")
+
+
+class GeneralKeywordRequestModel(CustomModel):
+    """ 通用带有关键字且不带分页的请求体 """
+    keyword: str = Field("", description="查询关键字")
+
+
+class GeneralKeywordPageRequestModel(PageRequestModel):
+    """ 通用带有关键字和分页的请求体 """
+    keyword: str = Field("", description="查询关键字")
+
+
+class DeleteRequestModel(CustomModel):
+    """ 通用删除请求 """
+    id: int = Field(..., description="要删除的数据ID")
 
 
 class ResponseModel(BaseModel, Generic[T]):

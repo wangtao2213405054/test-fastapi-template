@@ -1,17 +1,17 @@
 
-from typing import Any, Type, TypeVar
+from typing import Type, TypeVar, Any
 from datetime import datetime
 
 from fastapi.encoders import jsonable_encoder
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy import Select, Insert, Update, MetaData
+from sqlalchemy import Select, Insert, Update, MetaData, BinaryExpression
 from sqlalchemy.exc import DatabaseError
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, col
 
 from src.config import settings
 from src.constants import DB_NAMING_CONVENTION
-from src.exceptions import DatabaseConflictError, NotFound
+from src.exceptions import DatabaseConflictError, DatabaseNotFound
 
 T = TypeVar("T", bound=SQLModel)
 
@@ -43,6 +43,16 @@ def catch_database_exceptions(func):
     return wrapper
 
 
+def like(*, field: Any, keyword: str) -> BinaryExpression[bool]:
+    """
+    关键字模糊查询
+    :param field: 数据库模型的字段 or 列
+    :param keyword: 关键字
+    :return:
+    """
+    return col(field).like(f"%{keyword if keyword else ""}%")
+
+
 @catch_database_exceptions
 async def fetch_one(sql: Select | Insert | Update) -> T | None:
     """
@@ -56,7 +66,7 @@ async def fetch_one(sql: Select | Insert | Update) -> T | None:
 
 
 @catch_database_exceptions
-async def select_one(sql: Select) -> T:
+async def select_one(sql: Select) -> T | None:
     """
     查询单条数据, 如果未查询到则抛出 <NotFound> 异常
     :param sql: 查询语句
@@ -65,10 +75,25 @@ async def select_one(sql: Select) -> T:
     async with async_session() as session:
         results = await session.execute(sql)
         data = results.scalars().first()
+
         if not data:
-            raise NotFound()
+            raise DatabaseNotFound()
 
         return data
+
+
+@catch_database_exceptions
+async def fetch_page(sql: Select, page: int = 1, size: int = 20) -> list[T]:
+    """
+    查询多条数据并进行分页
+    :param sql: 查询的 sql 语句
+    :param page: 当前页
+    :param size: 每页大小
+    :return:
+    """
+    async with async_session() as session:
+        results = await session.execute(sql.offset(0 if page <= 1 else page - 1).limit(size))
+        return [result for result in results.scalars().all()]
 
 
 @catch_database_exceptions
@@ -125,3 +150,16 @@ async def update_one(table: SQLModel) -> T:
         await session.commit()
         await session.refresh(table)
         return table
+
+
+@catch_database_exceptions
+async def delete_one(sql: Select) -> T:
+    async with async_session() as session:
+        results = await session.execute(sql)
+        data = results.scalars().first()
+        if not data:
+            raise DatabaseNotFound()
+
+        await session.delete(data)
+        await session.commit()
+        return data

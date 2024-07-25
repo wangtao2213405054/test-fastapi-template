@@ -43,4 +43,4 @@ async def say_hello(name: str, item: LoginRequest) -> Test:
 
 
 if __name__ == '__main__':
-    uvicorn.run("main:app")
+    uvicorn.run("main:app", reload=True)

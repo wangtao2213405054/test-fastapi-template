@@ -1,11 +1,12 @@
 from typing import Any
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException
+from src.exceptions import status, message
 
 
 class DetailedHTTPException(HTTPException):
     STATUS_CODE = status.HTTP_500_INTERNAL_SERVER_ERROR
-    DETAIL = "服务器内部错误"
+    DETAIL = message.HTTP_500_INTERNAL_SERVER_ERROR
     ERRORS: dict | None = None
 
     def __init__(self, **kwargs: dict[str, Any]) -> None:
@@ -13,32 +14,27 @@ class DetailedHTTPException(HTTPException):
 
 
 class PermissionDenied(DetailedHTTPException):
+    """ 权限校验失败 """
     STATUS_CODE = status.HTTP_403_FORBIDDEN
-    DETAIL = "权限被拒绝"
+    DETAIL = message.HTTP_403_FORBIDDEN
 
 
 class NotFound(DetailedHTTPException):
+    """ 资源未找到 """
     STATUS_CODE = status.HTTP_404_NOT_FOUND
-    DETAIL = "数据不存在"
+    DETAIL = message.HTTP_404_NOT_FOUND
 
 
 class BadRequest(DetailedHTTPException):
+    """ 请求错误 """
     STATUS_CODE = status.HTTP_400_BAD_REQUEST
-    DETAIL = "错误请求"
+    DETAIL = message.HTTP_400_BAD_REQUEST
 
 
 class NotAuthenticated(DetailedHTTPException):
+    """ 用户认证失败 """
     STATUS_CODE = status.HTTP_401_UNAUTHORIZED
-    DETAIL = "用户未认证"
+    DETAIL = message.HTTP_401_UNAUTHORIZED
 
     def __init__(self) -> None:
         super().__init__(headers={"WWW-Authenticate": "Bearer"})
-
-
-class DatabaseConflictError(DetailedHTTPException):
-    STATUS_CODE = status.HTTP_409_CONFLICT
-    DETAIL = "数据库错误"
-
-    def __init__(self, detail: dict | None, **kwargs: dict[str, Any]) -> None:
-        super(DatabaseConflictError, self).__init__(**kwargs)
-        self.ERRORS = detail
