@@ -1,6 +1,6 @@
 
 from sqlmodel import SQLModel, create_engine, Session, select
-from src.api.auth.models.models import UserTable, UserCreate, MenuTable, MenuCreate, RoleTable, RoleCreate, UserRead, AffiliationTable
+from src.api.auth.models.models import UserTable, UserCreate, MenuTable, MenuCreate, RoleTable, RoleCreate, AffiliationTable
 
 
 sqlite_file_name = "root:123456789@127.0.0.1:3306/client"
@@ -46,6 +46,7 @@ def main():
 
         user = UserCreate(
             name="王涛",
+            username="WangTao",
             email="2213405054@qq.com",
             mobile="13520421043",
             password="1123",

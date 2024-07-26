@@ -37,7 +37,7 @@ class UserInfo(BaseModel):
 
 
 class Room:
-    """Room state, comprising connected users.
+    """Room Status, comprising connected users.
     """
 
     def __init__(self):

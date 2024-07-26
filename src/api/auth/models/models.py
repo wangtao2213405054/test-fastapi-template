@@ -90,12 +90,13 @@ class AffiliationListResponse(AffiliationBase):
 class UserBase(BaseModel):
     """ 用户数据模型 """
     name: str = Field(index=True, description="用户名称")  # 名称
+    username: str = Field(index=True, description="用户名称拼音")
     email: str = Field(index=True, nullable=False, unique=True, description="邮箱")  # 邮箱 不可重复
     mobile: str = Field(index=True, nullable=False, unique=True, description="手机号")  # 手机号 不可重复
-    avatarUrl: str | None = None  # 头像
-    state: bool = Field(True, description="用户在职状态")  # 用户在职状态
-    roleId: int | None = Field(None, foreign_key="test_role.id")  # 角色ID
-    affiliationId: int = Field(default=None, foreign_key="test_affiliation.id")  # 部门
+    avatarUrl: str | None = Field(None, description="头像")  # 头像
+    status: bool = Field(True, description="用户在职状态")  # 用户在职状态
+    roleId: int | None = Field(None, foreign_key="test_role.id", description="角色ID")  # 角色ID
+    affiliationId: int = Field(default=None, foreign_key="test_affiliation.id", description="所属关系ID")  # 部门
 
 
 class UserPassword(UserBase):
@@ -113,6 +114,7 @@ class UserCreate(UserPassword):
     """ 用于创建新的实例 """
 
 
-class UserRead(UserBase):
+class UserResponse(UserBase):
     """ 读取 User 实例 """
     id: int
+    resource: dict | None = None  # 用户的缓存资源

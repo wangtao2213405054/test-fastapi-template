@@ -7,12 +7,13 @@ from typing import Any
 
 from .models.types import (
     AuthLoginRequest, AccessTokenResponse,
-    AuthEditUserRequest,
+    CreateUserRequest,
     AuthGetMenuRequest, AuthEditMenuRequest,
     AuthEditRoleRequest, AuthGetRoleListRequest,
     AuthEditAffiliationRequest, AuthGetAffiliationListRequest
 )
 from .service import (
+    get_public_key, create_user,
     edit_role, get_role_list, delete_role,
     edit_menu, get_menu_tree, delete_menu,
     edit_affiliation, get_affiliation_tree, delete_affiliation
@@ -35,9 +36,26 @@ from sqlmodel import select
 router = APIRouter(prefix="/auth")
 
 
-@router.post("/user/edit")
-async def user_edit(body: AuthEditUserRequest):
-    pass
+@router.get("/public/key")
+def user_public_key() -> ResponseModel[str]:
+    """
+    获取密码公钥\f
+    :return:
+    """
+    public_key = get_public_key()
+    return ResponseModel(data=public_key)
+
+
+@router.post("/user/create")
+async def user_edit(body: CreateUserRequest):
+    await create_user(
+        name=body.name,
+        email=body.email,
+        mobile=body.mobile,
+        password=body.password,
+        affiliation_id=body.affiliationId
+    )
+    return None
 
 
 @router.post("/user/login")
@@ -117,7 +135,7 @@ async def role_edit(body: AuthEditRoleRequest) -> ResponseModel:
         role_id=body.id,
         name=body.name,
         identifier=body.identifier,
-        identifier_list=body.MenuIdentifierList
+        identifier_list=body.menuIdentifierList
     )
 
     return ResponseModel()

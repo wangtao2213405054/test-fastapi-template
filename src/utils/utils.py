@@ -3,6 +3,8 @@
 # _description: 工具集合
 
 from typing import Union
+
+import pypinyin
 import random
 import string
 import json
@@ -52,6 +54,20 @@ def create_dir(dir_path: str) -> str:
         os.makedirs(dir_path)
 
     return dir_path
+
+
+def pinyin(chinese_characters: str) -> str:
+    """
+    将汉字转换为拼音
+    :param chinese_characters: 汉字
+    :return:
+    """
+
+    _pinyin = ''
+    for item in pypinyin.pinyin(chinese_characters, style=pypinyin.NORMAL):
+        _pinyin += ''.join(item).capitalize()
+
+    return _pinyin
 
 
 if __name__ == '__main__':

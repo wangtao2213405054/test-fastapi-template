@@ -1,20 +1,24 @@
+# _author: Coke
+# _date: 2024/7/26 17:25
+# _description: 数据库操作相关函数
 
-from typing import Type, TypeVar, Any
+from typing import Type, TypeVar, Any, Callable
 from datetime import datetime
+from pydantic import BaseModel
+from functools import wraps
 
 from fastapi.encoders import jsonable_encoder
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy import Select, Insert, Update, MetaData, BinaryExpression
 from sqlalchemy.exc import DatabaseError
-from sqlmodel import SQLModel, col
+from sqlmodel import SQLModel, col, select
 
 from src.config import settings
 from src.constants import DB_NAMING_CONVENTION
-from src.exceptions import DatabaseConflictError, DatabaseNotFound
+from src.exceptions import DatabaseConflictError, DatabaseNotFound, DatabaseUniqueError
 
 T = TypeVar("T", bound=SQLModel)
-
 
 # Mysql 数据库地址
 DATABASE_URL = str(settings.DATABASE_URL)
@@ -26,12 +30,55 @@ metadata = MetaData(naming_convention=DB_NAMING_CONVENTION)
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
-def catch_database_exceptions(func):
+class UniqueDetails(BaseModel):
+    """ 校验重复的实例 """
+    message: str  # 如果重复所抛出的信息
+    kwargsKey: Any | None = None  # 数据库模型的实例
+
+
+def unique_check(table: Type[SQLModel], **unique: UniqueDetails) -> Callable[..., Any]:
     """
-    捕获 SQLAlchemy 抛出的 DatabaseError 并将结果转换成 JSON 返回
-    :param func:
+    检查数据在数据表中是否存在相同的数据
+    :param table: 模型表
+    :param unique: <UniqueDetails> 对象, key 为要检查的模型表实例
+            如果要校验 User 模型表中的 username 字段唯一, 以下是示例:
+                unique_check(User, username=UniqueDetails(
+                    message="账号必须唯一",
+                    value:需要校验的字段, 如果可 Key 值相同可不传递
+                ))
+
+            对应关系为: **unique 的 Key 为 数据库模型实例
+                kwargsKey 为 入参的实例 Key
     :return:
     """
+    def decorator(func: Callable[..., Any]):
+
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            """ 回调函数的入参信息 """
+
+            # 执行唯一性检查
+            for key, detail in unique.items():
+                value = kwargs.get(detail.kwargsKey if detail.kwargsKey else key)
+                result = await fetch_one(select(table).where(getattr(table, key) == value))
+                if result:
+                    raise DatabaseUniqueError(detail.message)
+
+            # 调用原始函数
+            return await func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def catch_database_exceptions(func: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    捕获 SQLAlchemy 抛出的 DatabaseError 并将结果转换成 JSON 返回
+    :param func: 回调函数
+    :return:
+    """
+
     async def wrapper(*args, **kwargs):
         try:
             result = await func(*args, **kwargs)
@@ -79,6 +126,7 @@ async def select_one(sql: Select) -> T | None:
         if not data:
             raise DatabaseNotFound()
 
+        # noinspection PyTypeChecker
         return data
 
 
@@ -142,7 +190,6 @@ async def update_one(table: SQLModel) -> T:
     :return: 返回更新后的数据模型
     """
     async with async_session() as session:
-
         if hasattr(table, "updateTime"):
             table.updateTime = datetime.now()
 
@@ -154,6 +201,11 @@ async def update_one(table: SQLModel) -> T:
 
 @catch_database_exceptions
 async def delete_one(sql: Select) -> T:
+    """
+    从表中删除一条数据
+    :param sql: 查询条件的 SQL 语句
+    :return:
+    """
     async with async_session() as session:
         results = await session.execute(sql)
         data = results.scalars().first()
@@ -162,4 +214,6 @@ async def delete_one(sql: Select) -> T:
 
         await session.delete(data)
         await session.commit()
+
+        # noinspection PyTypeChecker
         return data

@@ -18,3 +18,12 @@ class DatabaseNotFound(DetailedHTTPException):
     """ 无法在数据库找到对应信息 """
     STATUS_CODE = status.DATABASE_610_NOT_FOUND
     DETAIL = message.DATABASE_610_NOT_FOUND
+
+
+class DatabaseUniqueError(DetailedHTTPException):
+    STATUS_CODE = status.DATABASE_611_UNIQUE
+    DETAIL = message.DATABASE_611_UNIQUE
+
+    def __init__(self, detail: str, **kwargs: dict[str, Any]) -> None:
+        super(DatabaseUniqueError, self).__init__(**kwargs)
+        self.DETAIL = detail

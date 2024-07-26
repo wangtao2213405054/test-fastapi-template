@@ -16,16 +16,7 @@ class JWTData(CustomModel):
 
 class AuthLoginRequest(CustomModel):
     username: EmailStr = Body(..., description="用户名", min_length=6, max_length=128)
-    password: str = Body(..., description="密码", min_length=6, max_length=128)
-
-    # noinspection PyNestedDecorators
-    @field_validator("password", mode="after")
-    @classmethod
-    def valid_password(cls, password: str) -> str:
-        if not validate.password(password):
-            raise ValueError("密码必须至少包含一个小写字母、一个大写字母、数字和特殊符号")
-
-        return password
+    password: str = Body(..., description="密码")
 
 
 class AccessTokenResponse(CustomModel):
@@ -33,26 +24,15 @@ class AccessTokenResponse(CustomModel):
     refreshToken: str
 
 
-class AuthEditUserRequest(CustomModel):
-    """ 新增/修改用户信息 """
-    id: int = Body(None, description="用户ID")
+class UserBaseRequest(CustomModel):
+    """ 用户基础请求类 """
     name: str = Body(..., description="用户名称", min_length=2, max_length=128)
     email: EmailStr = Body(..., description="邮箱", min_length=6, max_length=128)
-    password: str = Body(None, description="密码", min_length=6, max_length=128)
     mobile: str = Body(..., description="手机号", min_length=11, max_length=11)
     avatarUrl: HttpUrl = Body(None, description="用户头像地址")
-    state: bool = Body(True, description="在职状态")
+    status: bool = Body(True, description="在职状态")
     roleId: int = Body(None, description="所属的角色ID")
     affiliationId: int = Body(..., description="用户所属的关系")
-
-    # noinspection PyNestedDecorators
-    @field_validator("password", mode="after")
-    @classmethod
-    def valid_password(cls, password: str) -> str:
-        if password and not validate.password(password):
-            raise ValueError("密码必须至少包含一个小写字母、一个大写字母、数字和特殊符号")
-
-        return password
 
     # noinspection PyNestedDecorators
     @field_validator("mobile", mode="after")
@@ -62,6 +42,22 @@ class AuthEditUserRequest(CustomModel):
             raise ValueError("手机号错误")
 
         return mobile
+
+
+class CreateUserRequest(UserBaseRequest):
+    """ 创建用户请求模型 """
+    password: str = Body(..., description="密码")  # RSA 加密后的密码
+
+
+class UpdateUserInfoRequest(UserBaseRequest):
+    """ 更改用户信息请求模型 """
+    id: int = Body(..., description="用户ID")
+
+
+class UpdatePasswordRequest(CustomModel):
+    """ 修改密码的请求模型 """
+    oldPassword: str = Body(..., description="旧的密码")
+    newPassword: str = Body(..., description="新的密码")
 
 
 class AuthGetMenuRequest(GeneralKeywordRequestModel):
@@ -82,7 +78,7 @@ class AuthEditRoleRequest(CustomModel):
     id: int = Body(None, description="角色ID")
     name: str = Body(..., description="角色名称")
     identifier: str = Body(..., description="角色标识符")
-    MenuIdentifierList: list[str] = Body(..., description="菜单权限标识符")
+    menuIdentifierList: list[str] = Body(..., description="菜单权限标识符")
 
 
 class AuthGetRoleListRequest(GeneralKeywordPageRequestModel):

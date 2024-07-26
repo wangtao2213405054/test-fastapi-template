@@ -1,3 +1,6 @@
+# _author: Coke
+# _date: 2024/7/26 14:20
+# _description: Auth 验证相关的服务器业务逻辑
 
 from datetime import datetime, timedelta
 from typing import Any
@@ -7,17 +10,71 @@ from sqlmodel import select, or_
 
 from src import utils
 from .config import auth_config
+from .security import serialize_key
 from .models.models import (
+    UserTable, UserResponse, UserCreate,
     MenuTable, MenuCreate, MenuListResponse, MenuInfoResponse,
     RoleTable, RoleCreate, RoleInfoResponse,
     AffiliationTable, AffiliationCreate, AffiliationListResponse, AffiliationInfoResponse
 )
 from src.database import (
     execute, fetch_one, insert_one, fetch_all, update_one, select_one,
-    fetch_page, delete_one, like
+    fetch_page, delete_one, like, UniqueDetails, unique_check
 )
 
 import uuid
+
+
+def get_public_key() -> str:
+    """
+    返回当前服务的公钥
+    :return:
+    """
+    public_key_pem = serialize_key(auth_config.PUBLIC_KEY, is_private=False)
+
+    return public_key_pem.decode("utf-8")
+
+
+@unique_check(
+    UserTable,
+    mobile=UniqueDetails(message="手机已号存在"),
+    email=UniqueDetails(message="邮件已存在")
+)
+async def create_user(
+        *,
+        name: str,
+        email: str,
+        mobile: str,
+        password: str,
+        affiliation_id: int,
+        avatar: str = None,
+        role_id: int = None,
+) -> UserResponse:
+    """
+    创建 一个新的用户
+    :param name: 用户名称
+    :param email: 用户游戏
+    :param mobile: 用户手机号
+    :param password: 用户密码
+    :param avatar: 头像
+    :param role_id: 角色ID
+    :param affiliation_id: 所属关系ID
+    :return:
+    """
+
+    username = utils.pinyin(name)
+    user = await insert_one(UserTable, UserCreate(
+        name=name,
+        username=username,
+        email=email,
+        mobile=mobile,
+        password=password,
+        avatarUrl=avatar,
+        roleId=role_id,
+        affiliationId=affiliation_id
+    ))
+
+    return user
 
 
 async def edit_affiliation(*, affiliation_id: int, name: str, node_id: int) -> AffiliationInfoResponse:

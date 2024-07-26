@@ -40,7 +40,7 @@ app.mount("/socket", socket_app)
 @app.exception_handler(Exception)
 async def passive_exception_handler(_request: Request, exc: Exception):
     """
-
+    对非主动抛出的异常进行捕获, 外部状态码为 200, 内部状态码
     :param _request: FastApi <Request> 对象
     :param exc: 错误对象
     :return: 返回错误的堆栈信息、错误信息及标识符. 标识符应用与查找日志信息
