@@ -28,6 +28,8 @@ class Config(BaseSettings):
 
     LOGGING_LEVEL: str = "INFO"  # 日志等级
 
+    PREFIX: str = "/api/v1/client"
+
     @model_validator(mode="after")
     def validate_sentry_non_local(self) -> "Config":
         """ 校验 Sentry 服务是否启动 """

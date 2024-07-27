@@ -1,3 +1,6 @@
+# _author: Coke
+# _date: 2024/7/28 00:54
+# _description: 数据库异常
 
 from typing import Any
 from .http import DetailedHTTPException

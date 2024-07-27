@@ -15,6 +15,8 @@ from src.config import app_configs, settings
 from src.cache import lifespan
 
 from src.api.auth.router import router as auth_router
+from src.api.auth.public import router as public_auth_router
+
 from src.websocketio import socket_app
 from src.utils import analysis_json, join_path, create_dir
 from typing import Callable, Awaitable, Union
@@ -29,8 +31,11 @@ import os
 
 
 # 初始化 Fast Api 并写入接口的 prefix
-app = FastAPI(**app_configs, lifespan=lifespan)
-prefix = "/api/v1/client"
+app = FastAPI(
+    **app_configs,
+    lifespan=lifespan
+)
+
 
 # 添加 socketio 事件处理程序
 app.mount("/socket", socket_app)
@@ -41,6 +46,7 @@ app.mount("/socket", socket_app)
 async def passive_exception_handler(_request: Request, exc: Exception):
     """
     对非主动抛出的异常进行捕获, 外部状态码为 200, 内部状态码
+
     :param _request: FastApi <Request> 对象
     :param exc: 错误对象
     :return: 返回错误的堆栈信息、错误信息及标识符. 标识符应用与查找日志信息
@@ -69,6 +75,7 @@ async def passive_exception_handler(_request: Request, exc: Exception):
 async def active_exception_handler(_request: Request, exc: DetailedHTTPException):
     """
     对所有主动抛出的异常做了转发, 所有的状态码都是 200, 并将详细信息填写入返回值信息中
+
     :param _request: FastApi <Request> 对象
     :param exc: 错误信息, 需要继承<DetailedHTTPException>类
     :return:
@@ -88,6 +95,7 @@ async def validation_handler(_request: Request, exc: RequestValidationError):
     """
     对入参错误异常做了转发, 当前响应码为 200, 并将错误信息返回至data 中
     jsonable_encoder 会将数据类型转换成 JSON兼容类型, exc 的 ctx 可能会出现对象, 我们需要调用这个方法来兼容
+
     :param _request: FastApi <Request> 对象
     :param exc: <RequestValidationError>类
     :return:
@@ -121,11 +129,12 @@ app.add_middleware(
 
 @app.middleware("http")
 async def http_middleware(
-        request: Request,
-        callback: Callable[[Request], Awaitable[StreamingResponse]]
+    request: Request,
+    callback: Callable[[Request], Awaitable[StreamingResponse]]
 ) -> Union[JSONResponse, StreamingResponse]:
     """
     HTTP 中间件, 用于记录请求信息和响应信息
+
     :param request: 请求信息 FastAPI <Request> 对象
     :param callback: 回调函数
     :return:
@@ -166,8 +175,8 @@ LOG_CONFIG["handlers"]["file"]["filename"] = os.path.join(LOG_DIR_PATH, "log.log
 
 
 # 路由注册区域
-app.include_router(auth_router, prefix=prefix, tags=["认证"])
-
+app.include_router(public_auth_router, prefix=settings.PREFIX, tags=["认证"])
+app.include_router(auth_router, prefix=settings.PREFIX, tags=["认证"])
 
 if __name__ == '__main__':
     uvicorn.run(

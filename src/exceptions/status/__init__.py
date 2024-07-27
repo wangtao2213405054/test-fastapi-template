@@ -1,5 +1,6 @@
 
 from .database import *
+from .http import *
 from starlette.status import *
 
 __all__ = [
@@ -8,5 +9,7 @@ __all__ = [
     "DATABASE_604_ERROR_QUERY",
     "DATABASE_601_ERROR_INSERT",
     "DATABASE_602_ERROR_UPDATE",
-    "DATABASE_603_ERROR_DELETE"
+    "DATABASE_603_ERROR_DELETE",
+    "HTTP_500_INTERNAL_SERVER_ERROR",
+    "HTTP_461_BAD_DATA"
 ]

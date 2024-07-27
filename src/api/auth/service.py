@@ -2,37 +2,64 @@
 # _date: 2024/7/26 14:20
 # _description: Auth 验证相关的服务器业务逻辑
 
-from datetime import datetime, timedelta
-from typing import Any
+from fastapi import Depends
+from typing import Annotated
 
-from pydantic import UUID4
 from sqlmodel import select, or_
 
 from src import utils
+from src.utils import validate
+from src.database import (
+    insert_one, fetch_all, update_one, select_one,
+    fetch_page, delete_one, like, UniqueDetails, unique_check
+)
+
+from .models.types import JWTData
 from .config import auth_config
-from .security import serialize_key
+from .jwt import parse_jwt_user_data
+from .exceptions import InvalidPassword, StandardsPassword, WrongPassword, InvalidUsername
+from .security import serialize_key, decrypt_message, hash_password, check_password
 from .models.models import (
     UserTable, UserResponse, UserCreate,
     MenuTable, MenuCreate, MenuListResponse, MenuInfoResponse,
     RoleTable, RoleCreate, RoleInfoResponse,
     AffiliationTable, AffiliationCreate, AffiliationListResponse, AffiliationInfoResponse
 )
-from src.database import (
-    execute, fetch_one, insert_one, fetch_all, update_one, select_one,
-    fetch_page, delete_one, like, UniqueDetails, unique_check
-)
 
-import uuid
+import logging
 
 
 def get_public_key() -> str:
     """
     返回当前服务的公钥
+
     :return:
     """
     public_key_pem = serialize_key(auth_config.PUBLIC_KEY, is_private=False)
 
     return public_key_pem.decode("utf-8")
+
+
+def decrypt_password(password: str) -> str:
+    """
+    对传递过来的密码进行 RSA 解密
+    如果处理失败抛出 <InvalidPassword> or <StandardsPassword> 错误
+
+    :param password: 加密的密码
+    :return:
+    """
+    try:
+        decrypt_password = decrypt_message(auth_config.PRIVATE_KEY, password)
+
+    except Exception as e:
+        logging.error(e)
+        raise InvalidPassword()
+
+    verify_password = validate.password(decrypt_password)
+    if not verify_password:
+        raise StandardsPassword()
+
+    return decrypt_password
 
 
 @unique_check(
@@ -41,17 +68,18 @@ def get_public_key() -> str:
     email=UniqueDetails(message="邮件已存在")
 )
 async def create_user(
-        *,
-        name: str,
-        email: str,
-        mobile: str,
-        password: str,
-        affiliation_id: int,
-        avatar: str = None,
-        role_id: int = None,
+    *,
+    name: str,
+    email: str,
+    mobile: str,
+    password: str,
+    affiliation_id: int,
+    avatar: str = None,
+    role_id: int = None,
 ) -> UserResponse:
     """
     创建 一个新的用户
+
     :param name: 用户名称
     :param email: 用户游戏
     :param mobile: 用户手机号
@@ -63,6 +91,8 @@ async def create_user(
     """
 
     username = utils.pinyin(name)
+    password = hash_password(decrypt_password(password))
+
     user = await insert_one(UserTable, UserCreate(
         name=name,
         username=username,
@@ -77,9 +107,105 @@ async def create_user(
     return user
 
 
+@unique_check(
+    UserTable,
+    func_key="user_id",
+    model_key="id",
+    mobile=UniqueDetails(message="手机已号存在"),
+    email=UniqueDetails(message="邮件已存在")
+)
+async def update_user(
+    *,
+    user_id: int,
+    name: str,
+    email: str,
+    mobile: str,
+    affiliation_id: int,
+    status: bool = True,
+    avatar: str = None,
+    role_id: int = None,
+) -> UserResponse:
+    """
+    修改用户信息
+
+    :param user_id: 用户ID
+    :param name: 用户名称
+    :param email: 用户邮箱
+    :param mobile: 手机号
+    :param affiliation_id: 所属关系ID
+    :param status: 在职状态
+    :param avatar: 头像
+    :param role_id: 角色ID
+    :return:
+    """
+    user: UserTable = await select_one(select(UserTable).where(UserTable.id == user_id))
+    user.name = name
+    user.username = utils.pinyin(name)
+    user.email = email
+    user.mobile = mobile
+    user.avatarUrl = avatar
+    user.status = status
+    user.roleId = role_id
+    user.affiliationId = affiliation_id
+
+    return await update_one(user)
+
+
+async def authenticate_user(username: str, password: str) -> UserResponse:
+    """
+    验证用户密码
+    :param username: 用户名
+    :param password: 密码
+    :return:
+    """
+    user: UserResponse = await select_one(select(UserTable).where(UserTable.email == username))
+
+    if not user:
+        raise InvalidUsername()
+
+    if not check_password(password, user.password):
+        raise WrongPassword()
+
+    return user
+
+
+async def get_current_user(user_data: Annotated[JWTData, Depends(parse_jwt_user_data)]) -> UserResponse:
+    """
+    获取当前用户信息
+    示例: user: Annotated[UserResponse, Depends(get_current_user)]
+
+    :param user_data: 传递的 Token
+    :return:
+    """
+
+    return await select_one(select(UserTable).where(UserTable.id == user_data.userId))
+
+
+async def update_password(*, user_id: int, old_password: str, new_password: str) -> None:
+    """
+    更新用户的密码信息
+
+    :param user_id: 用户ID
+    :param old_password: 旧密码
+    :param new_password: 新的密码
+    :return:
+    """
+    old_password = decrypt_password(old_password)
+    new_password = hash_password(decrypt_password(new_password))
+    user: UserTable = await select_one(select(UserTable).where(UserTable.id == user_id))
+
+    verify_password = check_password(old_password, user.password)
+    if not verify_password:
+        raise WrongPassword()
+
+    user.password = new_password
+    await update_one(user)
+
+
 async def edit_affiliation(*, affiliation_id: int, name: str, node_id: int) -> AffiliationInfoResponse:
     """
     创建/更新 一个所属关系
+
     :param affiliation_id: 所属关系ID 如何为真则视为修改
     :param name: 所属关系名称
     :param node_id: 节点ID
@@ -99,6 +225,7 @@ async def edit_affiliation(*, affiliation_id: int, name: str, node_id: int) -> A
 async def delete_affiliation(*, affiliation_id) -> AffiliationInfoResponse:
     """
     删除一个所属关系
+
     :param affiliation_id: 所属关系ID
     :return:
     """
@@ -108,6 +235,7 @@ async def delete_affiliation(*, affiliation_id) -> AffiliationInfoResponse:
 async def get_affiliation_tree(*, node_id: int, keyword: str = "") -> list[AffiliationListResponse]:
     """
     获取当前的所属关系树
+
     :param node_id: 节点ID
     :param keyword: 关键字查询
     :return:
@@ -132,6 +260,7 @@ async def get_affiliation_tree(*, node_id: int, keyword: str = "") -> list[Affil
 async def edit_menu(*, menu_id: int, name: str, identifier: str, node_id: int) -> MenuInfoResponse:
     """
     创建/更新 一个权限菜单
+
     :param menu_id: 权限菜单ID 如何为真则视为修改
     :param name: 菜单名称
     :param identifier: 菜单标识符
@@ -152,6 +281,7 @@ async def edit_menu(*, menu_id: int, name: str, identifier: str, node_id: int) -
 async def delete_menu(*, menu_id: int) -> MenuInfoResponse:
     """
     删除一个权限菜单
+
     :param menu_id: 权限菜单ID
     :return:
     """
@@ -161,6 +291,7 @@ async def delete_menu(*, menu_id: int) -> MenuInfoResponse:
 async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResponse]:
     """
     递归遍历所有子菜单信息
+
     :param node_id: 开始节点
     :param keyword: 关键字匹配
     :return:
@@ -185,6 +316,7 @@ async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResp
 async def edit_role(*, role_id: int, name: str, identifier: str, identifier_list: list[str]) -> RoleInfoResponse:
     """
     创建/修改 一个角色信息
+
     :param role_id: 角色ID
     :param name: 角色名称
     :param identifier: 角色标识符
@@ -205,13 +337,13 @@ async def edit_role(*, role_id: int, name: str, identifier: str, identifier_list
 async def get_role_list(page: int, size: int, *, keyword: str = "") -> list[RoleInfoResponse]:
     """
     获取角色信息列表
+
     :param page: 当前页
     :param size: 当前页大小
     :param keyword: 关键字查询, name or identifier
     :return:
     """
 
-    print(keyword, type(keyword))
     return await fetch_page(
         select(RoleTable).where(
             or_(like(field=RoleTable.name, keyword=keyword), like(field=RoleTable.identifier, keyword=keyword))
@@ -224,81 +356,9 @@ async def get_role_list(page: int, size: int, *, keyword: str = "") -> list[Role
 async def delete_role(*, role_id: int) -> RoleInfoResponse:
     """
     删除一个角色信息
+
     :param role_id: 角色信息ID
     :return:
     """
 
     return await delete_one(select(RoleTable).where(RoleTable.id == role_id))
-
-
-# async def create_user(user: AuthUser) -> dict[str, Any] | None:
-#     insert_query = (
-#         insert(auth_user)
-#         .values(
-#             {
-#                 "email": user.email,
-#                 "password": hash_password(user.password),
-#                 "created_at": datetime.now(),
-#             }
-#         )
-#         .returning(auth_user)
-#     )
-#
-#     return await fetch_one(insert_query)
-
-
-async def get_user_by_id(user_id: int) -> dict[str, Any] | None:
-    select_query = select(auth_user).where(auth_user.c.id == user_id)
-
-    return await fetch_one(select_query)
-
-
-async def get_user_by_email(email: str) -> dict[str, Any] | None:
-    select_query = select(auth_user).where(auth_user.c.email == email)
-
-    return await fetch_one(select_query)
-
-
-async def create_refresh_token(
-        *, user_id: int, refresh_token: str | None = None
-) -> str:
-    if not refresh_token:
-        refresh_token = utils.generate_random_alphanum(64)
-
-    insert_query = refresh_tokens.insert().values(
-        uuid=uuid.uuid4(),
-        refresh_token=refresh_token,
-        expires_at=datetime.now() + timedelta(seconds=auth_config.REFRESH_TOKEN_EXP),
-        user_id=user_id,
-    )
-    await execute(insert_query)
-
-    return refresh_token
-
-
-async def get_refresh_token(refresh_token: str) -> dict[str, Any] | None:
-    select_query = refresh_tokens.select().where(
-        refresh_tokens.c.refresh_token == refresh_token
-    )
-
-    return await fetch_one(select_query)
-
-
-async def expire_refresh_token(refresh_token_uuid: UUID4) -> None:
-    update_query = (
-        refresh_tokens.update()
-        .values(expires_at=datetime.now() - timedelta(days=1))
-        .where(refresh_tokens.c.uuid == refresh_token_uuid)
-    )
-
-    await execute(update_query)
-
-# async def authenticate_user(auth_data: AuthUser) -> dict[str, Any]:
-#     user = await get_user_by_email(auth_data.email)
-#     if not user:
-#         raise InvalidCredentials()
-#
-#     if not check_password(auth_data.password, user["password"]):
-#         raise InvalidCredentials()
-#
-#     return user

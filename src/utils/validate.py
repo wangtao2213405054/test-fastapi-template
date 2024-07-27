@@ -8,6 +8,7 @@ import re
 def password(value: str) -> bool:
     """
     校验密码是否符合规则
+
     :param value: 密码
     :return:
     """
@@ -20,6 +21,7 @@ def password(value: str) -> bool:
 def phone_number(mobile: str) -> bool:
     """
     判断是否为手机号（1 开头）
+
     :param mobile: 手机号
     :return:
     """

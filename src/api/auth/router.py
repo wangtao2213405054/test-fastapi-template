@@ -2,97 +2,111 @@
 # _date: 2024/7/25 14:15
 # _description: 用户验证相关路由
 
-from fastapi import APIRouter
-from typing import Any
+from fastapi import APIRouter, Depends
+from typing import Any, Annotated
 
 from .models.types import (
-    AuthLoginRequest, AccessTokenResponse,
-    CreateUserRequest,
+    CreateUserRequest, UpdateUserInfoRequest, UpdatePasswordRequest,
     AuthGetMenuRequest, AuthEditMenuRequest,
     AuthEditRoleRequest, AuthGetRoleListRequest,
     AuthEditAffiliationRequest, AuthGetAffiliationListRequest
 )
 from .service import (
-    get_public_key, create_user,
+    create_user, update_password, update_user, get_current_user,
     edit_role, get_role_list, delete_role,
     edit_menu, get_menu_tree, delete_menu,
     edit_affiliation, get_affiliation_tree, delete_affiliation
 )
-from src.models.types import ResponseModel, DeleteRequestModel
-from src.api.auth import jwt
-
-from src.database import fetch_one, insert_one
-
+from .jwt import parse_jwt_user_data
 from .models.models import (
-    UserTable, UserCreate,
+    UserResponse,
     MenuInfoResponse, MenuListResponse,
     RoleInfoResponse,
     AffiliationListResponse, AffiliationInfoResponse
 )
+
+from src.models.types import ResponseModel, DeleteRequestModel
 from src.websocketio import socket
-from sqlmodel import select
 
 
-router = APIRouter(prefix="/auth")
-
-
-@router.get("/public/key")
-def user_public_key() -> ResponseModel[str]:
-    """
-    获取密码公钥\f
-    :return:
-    """
-    public_key = get_public_key()
-    return ResponseModel(data=public_key)
+router = APIRouter(prefix="/auth", dependencies=[Depends(parse_jwt_user_data)])
 
 
 @router.post("/user/create")
-async def user_edit(body: CreateUserRequest):
-    await create_user(
+async def user_edit(body: CreateUserRequest) -> ResponseModel[UserResponse]:
+    """
+    创建用户接口\f
+
+    :param body: <CreateUserRequest> 对象
+    :return:
+    """
+    user = await create_user(
         name=body.name,
         email=body.email,
         mobile=body.mobile,
         password=body.password,
         affiliation_id=body.affiliationId
     )
-    return None
+
+    return ResponseModel(data=user)
 
 
-@router.post("/user/login")
-async def user_login(body: AuthLoginRequest) -> ResponseModel[AccessTokenResponse]:
+@router.post("/user/update")
+async def user_update(body: UpdateUserInfoRequest) -> ResponseModel[UserResponse]:
     """
-    用户登录接口\f
-    :param body: <AuthLoginRequest> 对象
+    修改用户信息\f
+
+    :param body: <UpdateUserInfoRequest> 对象
     :return:
     """
-    user = UserCreate(
-        name="郭聪",
-        email="2213405052@qq.com",
-        mobile="13520421041",
-        password="1123",
-        nodeId=1,
-        roleId=1
+    user = await update_user(
+        user_id=body.id,
+        name=body.name,
+        email=body.email,
+        mobile=body.mobile,
+        status=body.status,
+        affiliation_id=body.affiliationId,
+        avatar=body.avatarUrl,
+        role_id=body.roleId
     )
 
-    await insert_one(UserTable, user)
-    return ResponseModel(
-        data=AccessTokenResponse(
-            accessToken=jwt.create_access_token(user={'id': 1, 'is_admin': True}),
-            refreshToken="333"
-        )
+    return ResponseModel(data=user)
+
+
+@router.post("/update/password")
+async def user_update_password(body: UpdatePasswordRequest) -> ResponseModel:
+    """
+    修改用户密码\f
+
+    :param body: <UpdatePasswordRequest> 对象
+    :return:
+    """
+
+    await update_password(
+        user_id=body.id,
+        old_password=body.oldPassword,
+        new_password=body.newPassword
     )
+    return ResponseModel()
 
 
-@router.post("/user/test")
-async def user_test():
-    user = await fetch_one(select(UserTable).where(UserTable.id == 2))
-    return user
+@router.get("/user/info")
+async def user_info(user: Annotated[UserResponse, Depends(get_current_user)]) -> ResponseModel[UserResponse]:
+    """
+    获取当前用户信息\f
+
+    :param user: 用户信息
+    :return:
+    """
+
+    return ResponseModel(data=user)
 
 
 @router.post("/menu/list")
 async def menu_list(body: AuthGetMenuRequest) -> ResponseModel[list[MenuListResponse]]:
     """
     获取权限菜单列表\f
+
     :param body: <AuthGetMenuRequest> 对象
     :return:
     """
@@ -104,6 +118,7 @@ async def menu_list(body: AuthGetMenuRequest) -> ResponseModel[list[MenuListResp
 async def menu_edit(body: AuthEditMenuRequest) -> ResponseModel[MenuInfoResponse]:
     """
     添加/更新 一个权限菜单\f
+
     :param body: <AuthAddMenuRequest> 对象
     :return:
     """
@@ -117,6 +132,7 @@ async def menu_edit(body: AuthEditMenuRequest) -> ResponseModel[MenuInfoResponse
 async def menu_delete(body: DeleteRequestModel) -> ResponseModel[MenuInfoResponse]:
     """
     删除一个权限菜单\f
+
     :param body: <DeleteRequestModel> 对象
     :return:
     """
@@ -128,6 +144,7 @@ async def menu_delete(body: DeleteRequestModel) -> ResponseModel[MenuInfoRespons
 async def role_edit(body: AuthEditRoleRequest) -> ResponseModel:
     """
     添加/修改 一个角色信息\f
+
     :param body: <AuthEditRoleRequest> 对象
     :return:
     """
@@ -145,6 +162,7 @@ async def role_edit(body: AuthEditRoleRequest) -> ResponseModel:
 async def role_list(body: AuthGetRoleListRequest) -> ResponseModel[list[RoleInfoResponse]]:
     """
     获取角色列表\f
+
     :param body: <AuthGetRoleListRequest> 对象
     :return:
     """
@@ -161,6 +179,7 @@ async def role_list(body: AuthGetRoleListRequest) -> ResponseModel[list[RoleInfo
 async def role_delete(body: DeleteRequestModel) -> ResponseModel[RoleInfoResponse]:
     """
     删除一个角色信息\f
+
     :param body: <DeleteRequestModel> 对象
     :return:
     """
@@ -172,6 +191,7 @@ async def role_delete(body: DeleteRequestModel) -> ResponseModel[RoleInfoRespons
 async def affiliation_edit(body: AuthEditAffiliationRequest) -> ResponseModel[AffiliationInfoResponse]:
     """
     新增/修改 一个所属关系信息\f
+
     :param body: <AuthEditAffiliationRequest> 对象
     :return:
     """
@@ -183,6 +203,7 @@ async def affiliation_edit(body: AuthEditAffiliationRequest) -> ResponseModel[Af
 async def affiliation_list(body: AuthGetAffiliationListRequest) -> ResponseModel[list[AffiliationListResponse]]:
     """
     获取所属关系列表\f
+
     :param body: <AuthGetAffiliationListRequest> 对象
     :return:
     """
@@ -195,6 +216,7 @@ async def affiliation_list(body: AuthGetAffiliationListRequest) -> ResponseModel
 async def affiliation_delete(body: DeleteRequestModel) -> ResponseModel[AffiliationInfoResponse]:
     """
     删除所有关系信息\f
+
     :param body: <DeleteRequestModel> 对象
     :return:
     """
@@ -206,6 +228,7 @@ async def affiliation_delete(body: DeleteRequestModel) -> ResponseModel[Affiliat
 def connect(sid: str, environ: dict[str, Any]):
     """
     socketio 连接事件
+
     :return:
     """
     token = environ.get("HTTP_TOKEN")
@@ -219,6 +242,7 @@ def connect(sid: str, environ: dict[str, Any]):
 def disconnect(sid: str):
     """
     socketio 断连事件
+
     :return:
     """
     print(sid, '123')

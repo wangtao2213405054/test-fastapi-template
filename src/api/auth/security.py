@@ -60,14 +60,15 @@ def encrypt_message(public_key: rsa.RSAPublicKey, message: str) -> str:
     :return: 加密后的消息，字节串格式
     """
     encrypted_message = public_key.encrypt(
-        base64.b64decode(message),
+        message.encode("utf-8"),
         padding.OAEP(
             mgf=padding.MGF1(algorithm=hashes.SHA256()),  # Mask Generation Function
             algorithm=hashes.SHA256(),  # 使用 SHA256 哈希算法
             label=None
         )
     )
-    return encrypted_message.decode("utf-8")
+
+    return base64.b64encode(encrypted_message).decode("utf-8")
 
 
 def decrypt_message(private_key: rsa.RSAPrivateKey, encrypted_message: str) -> str:
@@ -111,3 +112,15 @@ def check_password(password: str, password_in_db: bytes) -> bool:
     """
     password_bytes = bytes(password, "utf-8")
     return bcrypt.checkpw(password_bytes, password_in_db)
+
+
+if __name__ == '__main__':
+    private_key, public_key = generate_rsa_key_pair()
+    _message = "this is a test message"
+    # 加密
+    encrypted_message = encrypt_message(public_key, _message)
+    print(encrypted_message)
+
+    # 解密
+    decrypted_message = decrypt_message(private_key, encrypted_message)
+    print(decrypted_message)

@@ -1,4 +1,6 @@
-
+# _author: Coke
+# _date: 2024/7/28 00:53
+# _description: 数据库错误码
 
 DATABASE_600_BAD_SQL = 600
 DATABASE_601_ERROR_INSERT = 601

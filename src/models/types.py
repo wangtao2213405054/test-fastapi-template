@@ -1,3 +1,6 @@
+# _author: Coke
+# _date: 2024/7/28 00:57
+# _description: 基础 请求/响应 模型
 
 from datetime import datetime, timedelta
 from typing import Any, TypeVar, Generic

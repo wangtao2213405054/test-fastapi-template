@@ -1,5 +1,7 @@
 # _author: Coke
-# _date: 2023/12/11 23:00
+# _date: 2024/7/28 00:56
+# _description: 基础数据库模型
+
 from sqlmodel import SQLModel, Field
 from src.models.types import convert_datetime_to_gmt
 from datetime import datetime

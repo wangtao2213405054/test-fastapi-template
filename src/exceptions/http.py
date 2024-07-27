@@ -1,3 +1,7 @@
+# _author: Coke
+# _date: 2024/7/28 00:53
+# _description: 请求异常基础类
+
 from typing import Any
 
 from fastapi import HTTPException
@@ -29,6 +33,12 @@ class BadRequest(DetailedHTTPException):
     """ 请求错误 """
     STATUS_CODE = status.HTTP_400_BAD_REQUEST
     DETAIL = message.HTTP_400_BAD_REQUEST
+
+
+class BadData(DetailedHTTPException):
+    """ 错误数据 """
+    STATUS_CODE = status.HTTP_461_BAD_DATA
+    DETAIL = message.HTTP_461_BAD_DATA
 
 
 class NotAuthenticated(DetailedHTTPException):

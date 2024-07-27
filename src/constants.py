@@ -1,3 +1,7 @@
+# _author: Coke
+# _date: 2024/7/28 00:59
+# _description: 当前环境信息
+
 from enum import Enum
 
 DB_NAMING_CONVENTION = {

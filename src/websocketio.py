@@ -1,5 +1,6 @@
 # _author: Coke
-# _date: 2023/12/16 15:31
+# _date: 2024/7/28 00:53
+# _description: Socket IO 挂载服务
 
 from typing import Any
 from pydantic import BaseModel
@@ -13,7 +14,7 @@ class UserInfo(BaseModel):
     """ 用户信息 """
     userId: str  # 用户ID
     connectedAt: float  # 连接到的时间
-    session: str  # 用户 session
+    session: str  # 用户 Session
 
 
 class SocketIO(socketio.AsyncServer):
