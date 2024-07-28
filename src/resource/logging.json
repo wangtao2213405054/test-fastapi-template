@@ -18,7 +18,7 @@
         "file": {
             "class": "logging.handlers.RotatingFileHandler",
             "formatter": "simple",
-            "filename": "log.log",
+            "filename": "./logs/log.log",
             "maxBytes": 104857600,
             "backupCount": 10,
             "encoding": "utf8"

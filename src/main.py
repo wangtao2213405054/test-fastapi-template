@@ -27,7 +27,6 @@ import uvicorn
 import logging
 import time
 import uuid
-import os
 
 
 # 初始化 Fast Api 并写入接口的 prefix
@@ -167,18 +166,15 @@ if settings.ENVIRONMENT.is_deployed:
         environment=settings.ENVIRONMENT,
     )
 
-# 日志配置
-LOG_DIR_PATH = create_dir(join_path("logs"))
-LOG_CONFIG = analysis_json(join_path("resource", "logging.json"))
-LOG_CONFIG["root"]["level"] = settings.LOGGING_LEVEL
-LOG_CONFIG["handlers"]["file"]["filename"] = os.path.join(LOG_DIR_PATH, "log.log")
-
 
 # 路由注册区域
 app.include_router(public_auth_router, prefix=settings.PREFIX, tags=["认证"])
 app.include_router(auth_router, prefix=settings.PREFIX, tags=["认证"])
 
 if __name__ == '__main__':
+    # 创建日志存放路径
+    LOG_DIR_PATH = create_dir(join_path("logs"))
+    LOG_CONFIG = analysis_json(join_path("resource", "logging.json"))
     uvicorn.run(
         "src.main:app",
         reload=True,

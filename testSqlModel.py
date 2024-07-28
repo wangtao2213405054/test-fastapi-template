@@ -3,7 +3,7 @@ from sqlmodel import SQLModel, create_engine, Session, select
 from src.api.auth.models.models import UserTable, UserCreate, MenuTable, MenuCreate, RoleTable, RoleCreate, AffiliationTable
 
 
-sqlite_file_name = "root:123456789@127.0.0.1:3306/client"
+sqlite_file_name = "root:123456@127.0.0.1:33306/client"
 sqlite_url = f"mysql+mysqlconnector://{sqlite_file_name}"
 
 engine = create_engine(sqlite_url, echo=True)
