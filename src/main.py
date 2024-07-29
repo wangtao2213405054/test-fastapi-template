@@ -17,22 +17,17 @@ from src.cache import lifespan
 from src.api import auth_router, public_auth_router
 
 from src.websocketio import socket_app
-from src.utils import analysis_json, join_path, create_dir
 from typing import Callable, Awaitable, Union
 
 import sentry_sdk
 import traceback
-import uvicorn
 import logging
 import time
 import uuid
 
 
 # 初始化 Fast Api 并写入接口的 prefix
-app = FastAPI(
-    **app_configs,
-    lifespan=lifespan
-)
+app = FastAPI(**app_configs, lifespan=lifespan)
 
 
 # 添加 socketio 事件处理程序
@@ -52,20 +47,18 @@ async def passive_exception_handler(_request: Request, exc: Exception):
 
     uuid4 = uuid.uuid4()
 
-    error_info = dict(
-        error=str(exc),
-        sign=str(uuid4),
-        stack=traceback.format_exception(exc)
-    )
+    error_info = dict(error=str(exc), sign=str(uuid4), stack=traceback.format_exception(exc))
     logging.exception(f"Exception ID: {uuid4}")
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content=jsonable_encoder(ResponseModel(
-            code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            message=message.HTTP_500_INTERNAL_SERVER_ERROR,
-            data=error_info if settings.ENVIRONMENT.is_debug else str(uuid4)
-        ))
+        content=jsonable_encoder(
+            ResponseModel(
+                code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                message=message.HTTP_500_INTERNAL_SERVER_ERROR,
+                data=error_info if settings.ENVIRONMENT.is_debug else str(uuid4),
+            )
+        ),
     )
 
 
@@ -80,11 +73,13 @@ async def active_exception_handler(_request: Request, exc: DetailedHTTPException
     """
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content=jsonable_encoder(ResponseModel(
-            code=exc.STATUS_CODE,
-            message=exc.DETAIL,
-            data=exc.ERRORS if settings.ENVIRONMENT.is_debug else None  # 只有在 DEBUG 模式才返回详细的错误信息
-        ))
+        content=jsonable_encoder(
+            ResponseModel(
+                code=exc.STATUS_CODE,
+                message=exc.DETAIL,
+                data=exc.ERRORS if settings.ENVIRONMENT.is_debug else None,  # 只有在 DEBUG 模式才返回详细的错误信息
+            )
+        ),
     )
 
 
@@ -104,12 +99,11 @@ async def validation_handler(_request: Request, exc: RequestValidationError):
             ResponseModel(
                 code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 message=message.HTTP_422_UNPROCESSABLE_ENTITY,
-                data=dict(
-                    body=exc.body,
-                    detail=jsonable_encoder(exc.errors())
-                ) if settings.ENVIRONMENT.is_debug else None
+                data=dict(body=exc.body, detail=jsonable_encoder(exc.errors()))
+                if settings.ENVIRONMENT.is_debug
+                else None,
             )
-        )
+        ),
     )
 
 
@@ -127,8 +121,7 @@ app.add_middleware(
 
 @app.middleware("http")
 async def http_middleware(
-    request: Request,
-    callback: Callable[[Request], Awaitable[StreamingResponse]]
+    request: Request, callback: Callable[[Request], Awaitable[StreamingResponse]]
 ) -> Union[JSONResponse, StreamingResponse]:
     """
     HTTP 中间件, 用于记录请求信息和响应信息
@@ -142,7 +135,7 @@ async def http_middleware(
 
     # request
     body = await request.body()
-    logging.info(f"Request Info: {request.client.host}:{request.client.port} - \"{request.method} {request.url.path}\"")
+    logging.info(f'Request Info: {request.client.host}:{request.client.port} - "{request.method} {request.url.path}"')
     logging.debug(f"Request Headers: {request.headers.items()}")
     logging.info(f"Request Body: {''.join(body.decode('utf-8').split())}")
 
@@ -169,13 +162,3 @@ if settings.ENVIRONMENT.is_deployed:
 # 路由注册区域
 app.include_router(public_auth_router, prefix=settings.PREFIX, tags=["认证"])
 app.include_router(auth_router, prefix=settings.PREFIX, tags=["认证"])
-
-if __name__ == '__main__':
-    # 创建日志存放路径
-    LOG_DIR_PATH = create_dir(join_path("logs"))
-    LOG_CONFIG = analysis_json(join_path("resource", "logging.json"))
-    uvicorn.run(
-        "src.main:app",
-        reload=True,
-        log_config=LOG_CONFIG
-    )

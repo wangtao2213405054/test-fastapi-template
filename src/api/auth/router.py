@@ -6,23 +6,39 @@ from fastapi import APIRouter, Depends
 from typing import Any, Annotated
 
 from .models.types import (
-    CreateUserRequest, UpdateUserInfoRequest, UpdatePasswordRequest,
-    AuthGetMenuRequest, AuthEditMenuRequest,
-    AuthEditRoleRequest, AuthGetRoleListRequest,
-    AuthEditAffiliationRequest, AuthGetAffiliationListRequest
+    CreateUserRequest,
+    UpdateUserInfoRequest,
+    UpdatePasswordRequest,
+    AuthGetMenuRequest,
+    AuthEditMenuRequest,
+    AuthEditRoleRequest,
+    AuthGetRoleListRequest,
+    AuthEditAffiliationRequest,
+    AuthGetAffiliationListRequest,
 )
 from .service import (
-    create_user, update_password, update_user, get_current_user,
-    edit_role, get_role_list, delete_role,
-    edit_menu, get_menu_tree, delete_menu,
-    edit_affiliation, get_affiliation_tree, delete_affiliation
+    create_user,
+    update_password,
+    update_user,
+    get_current_user,
+    edit_role,
+    get_role_list,
+    delete_role,
+    edit_menu,
+    get_menu_tree,
+    delete_menu,
+    edit_affiliation,
+    get_affiliation_tree,
+    delete_affiliation,
 )
 from .jwt import parse_jwt_user_data
 from .models.models import (
     UserResponse,
-    MenuInfoResponse, MenuListResponse,
+    MenuInfoResponse,
+    MenuListResponse,
     RoleInfoResponse,
-    AffiliationListResponse, AffiliationInfoResponse
+    AffiliationListResponse,
+    AffiliationInfoResponse,
 )
 
 from src.models.types import ResponseModel, DeleteRequestModel
@@ -45,7 +61,7 @@ async def user_edit(body: CreateUserRequest) -> ResponseModel[UserResponse]:
         email=body.email,
         mobile=body.mobile,
         password=body.password,
-        affiliation_id=body.affiliationId
+        affiliation_id=body.affiliationId,
     )
 
     return ResponseModel(data=user)
@@ -67,7 +83,7 @@ async def user_update(body: UpdateUserInfoRequest) -> ResponseModel[UserResponse
         status=body.status,
         affiliation_id=body.affiliationId,
         avatar=body.avatarUrl,
-        role_id=body.roleId
+        role_id=body.roleId,
     )
 
     return ResponseModel(data=user)
@@ -82,11 +98,7 @@ async def user_update_password(body: UpdatePasswordRequest) -> ResponseModel:
     :return:
     """
 
-    await update_password(
-        user_id=body.id,
-        old_password=body.oldPassword,
-        new_password=body.newPassword
-    )
+    await update_password(user_id=body.id, old_password=body.oldPassword, new_password=body.newPassword)
     return ResponseModel()
 
 
@@ -122,9 +134,7 @@ async def menu_edit(body: AuthEditMenuRequest) -> ResponseModel[MenuInfoResponse
     :param body: <AuthAddMenuRequest> 对象
     :return:
     """
-    menu = await edit_menu(
-        menu_id=body.id, name=body.name, identifier=body.identifier, node_id=body.nodeId
-    )
+    menu = await edit_menu(menu_id=body.id, name=body.name, identifier=body.identifier, node_id=body.nodeId)
     return ResponseModel(data=menu)
 
 
@@ -152,7 +162,7 @@ async def role_edit(body: AuthEditRoleRequest) -> ResponseModel:
         role_id=body.id,
         name=body.name,
         identifier=body.identifier,
-        identifier_list=body.menuIdentifierList
+        identifier_list=body.menuIdentifierList,
     )
 
     return ResponseModel()
@@ -166,11 +176,7 @@ async def role_list(body: AuthGetRoleListRequest) -> ResponseModel[list[RoleInfo
     :param body: <AuthGetRoleListRequest> 对象
     :return:
     """
-    role = await get_role_list(
-        body.page,
-        body.pageSize,
-        keyword=body.keyword
-    )
+    role = await get_role_list(body.page, body.pageSize, keyword=body.keyword)
 
     return ResponseModel(data=role)
 
@@ -232,8 +238,8 @@ def connect(sid: str, environ: dict[str, Any]):
     :return:
     """
     token = environ.get("HTTP_TOKEN")
-    print(token, 'token')
-    print(socket.rooms(sid), 'rooms')
+    print(token, "token")
+    print(socket.rooms(sid), "rooms")
     # if not token:
     #     return False
 
@@ -245,4 +251,4 @@ def disconnect(sid: str):
 
     :return:
     """
-    print(sid, '123')
+    print(sid, "123")

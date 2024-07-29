@@ -20,7 +20,7 @@ export APP_MODULE=${APP_MODULE:-"$MODULE_NAME:$VARIABLE_NAME"}
 HOST=${HOST:-0.0.0.0}
 PORT=${PORT:-8006}
 LOG_LEVEL=${LOG_LEVEL:-info}
-LOG_CONFIG=${LOG_CONFIG:-src/resource/logging.json}
+LOG_CONFIG=${LOG_CONFIG:-logging.ini}
 
 # 启动服务器 --reload 在 Mac 下会一直检测到变化
 exec uvicorn --reload --proxy-headers --host $HOST --port $PORT --log-config $LOG_CONFIG "$APP_MODULE"

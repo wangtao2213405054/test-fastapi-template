@@ -7,7 +7,12 @@ from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated
 
 from .service import get_public_key, authenticate_user, decrypt_password
-from .models.types import AccessTokenResponse, AuthLoginRequest, SwaggerToken, RefreshTokenRequest
+from .models.types import (
+    AccessTokenResponse,
+    AuthLoginRequest,
+    SwaggerToken,
+    RefreshTokenRequest,
+)
 
 from src.api.auth import jwt
 from src.models.types import ResponseModel
@@ -28,9 +33,7 @@ def user_public_key() -> ResponseModel[str]:
 
 
 @router.post("/swagger/login", deprecated=True, dependencies=[])
-async def swagger_login(
-    form: Annotated[OAuth2PasswordRequestForm, Depends()]
-) -> SwaggerToken:
+async def swagger_login(form: Annotated[OAuth2PasswordRequestForm, Depends()]) -> SwaggerToken:
     """
     Swagger 登录接口, 用于 Swagger 文档的登录 只有在开发环境中可以调用\n
     注意!!! 此接口传递的密码没有进行加密, 请谨慎...\f
@@ -40,10 +43,7 @@ async def swagger_login(
     """
     user = await authenticate_user(form.username, form.password)
 
-    return SwaggerToken(
-        access_token=jwt.create_access_token(user=dict(id=user.id)),
-        token_type="bearer"
-    )
+    return SwaggerToken(access_token=jwt.create_access_token(user=dict(id=user.id)), token_type="bearer")
 
 
 @router.post("/user/login")
@@ -59,12 +59,7 @@ async def user_login(body: AuthLoginRequest) -> ResponseModel[AccessTokenRespons
 
     refresh_token = jwt.create_refresh_token(user=dict(id=user.id))
 
-    return ResponseModel(
-        data=AccessTokenResponse(
-            accessToken=token,
-            refreshToken=refresh_token
-        )
-    )
+    return ResponseModel(data=AccessTokenResponse(accessToken=token, refreshToken=refresh_token))
 
 
 @router.post("/refresh/token")

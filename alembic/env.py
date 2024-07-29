@@ -1,30 +1,6 @@
-"""
-  _author: Coke
-  _date: 2024/7/29 16:37
-  _description: alembic init alembic 自动生成的 env 文件
-  修改了部分代码:
-    # 导入了项目数据库及环境设置
-    from src.config import settings
-    from src.database import metadata
-
-    target_metadata = None 变为了 target_metadata = metadata
-
-    # 为 alembic.ini 设置了 DATABASE_URL 信息
-    DATABASE_URL = str(settings.DATABASE_URL)
-
-    db_driver = settings.DATABASE_URL.scheme
-
-    # 如果存在异步驱动则更改为同步
-    db_driver_parts = db_driver.split("+")
-    if len(db_driver_parts) > 1:
-        sync_scheme = f"{db_driver_parts[0].strip()}+mysqlconnector"
-        DATABASE_URL = DATABASE_URL.replace(db_driver, sync_scheme)
-
-    config.set_main_option("sqlalchemy.url", DATABASE_URL)
-    config.compare_type = True
-    config.compare_server_default = True
-
-"""
+# _author: Coke
+# _date: 2024/7/29 16:37
+# _description: Alembic 迁移文件, 包含 Alembic 环境、数据库连接、上下文配置及迁移脚本
 
 from logging.config import fileConfig
 
@@ -34,28 +10,28 @@ from sqlalchemy import pool
 from alembic import context
 
 from src.config import settings
-from src.database import metadata
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+from sqlmodel import SQLModel
+
+# 需要导入要创建的模型信息, 由 Alembic 自动创建对应的数据表
+from src.api.auth.models import (
+    UserTable,
+    MenuTable,
+    RoleTable,
+    AffiliationTable
+)
+
+# 这是 Alembic 配置对象，它提供了对所使用的 .ini 文件中值的访问
 config = context.config
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
+# 用于 Python 日志记录的配置文件
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = metadata
+# 将模型设置为 SQLModel 的 Metadata
+target_metadata = SQLModel.metadata
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
-
+# 将数据库连接配置到 alembic.ini 中
 DATABASE_URL = str(settings.DATABASE_URL)
 
 db_driver = settings.DATABASE_URL.scheme
@@ -63,6 +39,7 @@ db_driver = settings.DATABASE_URL.scheme
 # 如果存在异步驱动则更改为同步
 db_driver_parts = db_driver.split("+")
 if len(db_driver_parts) > 1:
+    # 非 Mysql 数据库请修改此部分内容, 采用了 mysql connector 连接方式
     sync_scheme = f"{db_driver_parts[0].strip()}+mysqlconnector"
     DATABASE_URL = DATABASE_URL.replace(db_driver, sync_scheme)
 

@@ -32,7 +32,7 @@ class Config(BaseSettings):
 
     @model_validator(mode="after")
     def validate_sentry_non_local(self) -> "Config":
-        """ 校验 Sentry 服务是否启动 """
+        """校验 Sentry 服务是否启动"""
         if self.ENVIRONMENT.is_deployed and not self.SENTRY_DSN:
             raise ValueError("Sentry (错误跟踪和监控)服务没有设置")
 

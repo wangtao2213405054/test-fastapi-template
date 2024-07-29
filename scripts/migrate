@@ -1,3 +1,4 @@
 #!/bin/sh -e
 
+# 将数据库迁移到最新版本
 alembic upgrade head

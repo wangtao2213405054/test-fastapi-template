@@ -31,17 +31,18 @@ async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit
 
 
 class UniqueDetails(BaseModel):
-    """ 校验重复的实例 """
+    """校验重复的实例"""
+
     message: str  # 如果重复所抛出的信息
     kwargsKey: str | None = None  # 数据库模型的实例
 
 
 def unique_check(
-        table: Type[SQLModel],
-        *,
-        func_key: str = None,
-        model_key: str = None,
-        **unique: Union[UniqueDetails, str]
+    table: Type[SQLModel],
+    *,
+    func_key: str = None,
+    model_key: str = None,
+    **unique: Union[UniqueDetails, str],
 ) -> Callable[..., Any]:
     """
     检查数据在数据表中是否存在相同的数据, 此装饰器会在 FastAPI 校验参数之前执行...
@@ -69,14 +70,12 @@ def unique_check(
     model_key = model_key or func_key
 
     def decorator(func: Callable[..., Any]):
-
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            """ 回调函数的入参信息 """
+            """回调函数的入参信息"""
 
             # 执行唯一性检查
             for key, detail in unique.items():
-
                 # 兼容性的处理, 支持 UniqueDetails or Str
                 if issubclass(detail.__class__, UniqueDetails):
                     _key = detail.kwargsKey or key

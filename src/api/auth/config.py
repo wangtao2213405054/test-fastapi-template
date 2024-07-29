@@ -9,7 +9,7 @@ from typing import Any
 
 
 class AuthConfig(BaseSettings):
-    """ 用户认证配置 """
+    """用户认证配置"""
 
     JWT_ALG: str
 

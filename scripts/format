@@ -1,0 +1,6 @@
+#!/bin/sh -e
+set -x
+
+# 格式化代码
+ruff --fix src
+ruff format src

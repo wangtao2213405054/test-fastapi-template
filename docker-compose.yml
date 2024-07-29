@@ -32,7 +32,7 @@ services:
     volumes:
       - app_mysql_data:/var/lib/mysql  # 持久化数据库数据
       - app_mysql_data_backups:/backups  # 数据库备份
-      - ./scripts/mysql:/scripts  # 本地脚本映射到容器内 /scripts 目录
+      # - ./scripts/mysql:/scripts  # 本地脚本映射到容器内 /scripts 目录
 
     command:
       - --character-set-server=utf8mb4  # 设置数据库字符集为 utf8mb4

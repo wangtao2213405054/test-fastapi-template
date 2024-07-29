@@ -41,13 +41,13 @@ def serialize_key(key, is_private: bool = True) -> bytes:
         return key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=serialization.NoEncryption()  # 无加密
+            encryption_algorithm=serialization.NoEncryption(),  # 无加密
         )
     else:
         # 序列化为公钥 PEM 格式
         return key.public_bytes(
             encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
 
 
@@ -64,8 +64,8 @@ def encrypt_message(public_key: rsa.RSAPublicKey, message: str) -> str:
         padding.OAEP(
             mgf=padding.MGF1(algorithm=hashes.SHA256()),  # Mask Generation Function
             algorithm=hashes.SHA256(),  # 使用 SHA256 哈希算法
-            label=None
-        )
+            label=None,
+        ),
     )
 
     return base64.b64encode(encrypted_message).decode("utf-8")
@@ -84,8 +84,8 @@ def decrypt_message(private_key: rsa.RSAPrivateKey, encrypted_message: str) -> s
         padding.OAEP(
             mgf=padding.MGF1(algorithm=hashes.SHA256()),  # Mask Generation Function
             algorithm=hashes.SHA256(),  # 使用 SHA256 哈希算法
-            label=None
-        )
+            label=None,
+        ),
     )
     return decrypted_message.decode("utf-8")
 
@@ -114,7 +114,7 @@ def check_password(password: str, password_in_db: bytes) -> bool:
     return bcrypt.checkpw(password_bytes, password_in_db)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     private_key, public_key = generate_rsa_key_pair()
     _message = "this is a test message"
     # 加密

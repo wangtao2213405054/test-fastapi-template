@@ -1,0 +1,4 @@
+#!/bin/sh -e
+
+# 生成指定的迁移文件 $1 迁移内容
+alembic revision --autogenerate -m "$1"

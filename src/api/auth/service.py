@@ -10,20 +10,42 @@ from sqlmodel import select, or_
 from src import utils
 from src.utils import validate
 from src.database import (
-    insert_one, fetch_all, update_one, select_one,
-    fetch_page, delete_one, like, UniqueDetails, unique_check
+    insert_one,
+    fetch_all,
+    update_one,
+    select_one,
+    fetch_page,
+    delete_one,
+    like,
+    UniqueDetails,
+    unique_check,
 )
 
 from .models.types import JWTData
 from .config import auth_config
 from .jwt import parse_jwt_user_data
-from .exceptions import InvalidPassword, StandardsPassword, WrongPassword, InvalidUsername
+from .exceptions import (
+    InvalidPassword,
+    StandardsPassword,
+    WrongPassword,
+    InvalidUsername,
+)
 from .security import serialize_key, decrypt_message, hash_password, check_password
 from .models.models import (
-    UserTable, UserResponse, UserCreate,
-    MenuTable, MenuCreate, MenuListResponse, MenuInfoResponse,
-    RoleTable, RoleCreate, RoleInfoResponse,
-    AffiliationTable, AffiliationCreate, AffiliationListResponse, AffiliationInfoResponse
+    UserTable,
+    UserResponse,
+    UserCreate,
+    MenuTable,
+    MenuCreate,
+    MenuListResponse,
+    MenuInfoResponse,
+    RoleTable,
+    RoleCreate,
+    RoleInfoResponse,
+    AffiliationTable,
+    AffiliationCreate,
+    AffiliationListResponse,
+    AffiliationInfoResponse,
 )
 
 import logging
@@ -65,7 +87,7 @@ def decrypt_password(password: str) -> str:
 @unique_check(
     UserTable,
     mobile=UniqueDetails(message="手机已号存在"),
-    email=UniqueDetails(message="邮件已存在")
+    email=UniqueDetails(message="邮件已存在"),
 )
 async def create_user(
     *,
@@ -93,16 +115,19 @@ async def create_user(
     username = utils.pinyin(name)
     password = hash_password(decrypt_password(password))
 
-    user = await insert_one(UserTable, UserCreate(
-        name=name,
-        username=username,
-        email=email,
-        mobile=mobile,
-        password=password,
-        avatarUrl=avatar,
-        roleId=role_id,
-        affiliationId=affiliation_id
-    ))
+    user = await insert_one(
+        UserTable,
+        UserCreate(
+            name=name,
+            username=username,
+            email=email,
+            mobile=mobile,
+            password=password,
+            avatarUrl=avatar,
+            roleId=role_id,
+            affiliationId=affiliation_id,
+        ),
+    )
 
     return user
 
@@ -112,7 +137,7 @@ async def create_user(
     func_key="user_id",
     model_key="id",
     mobile=UniqueDetails(message="手机已号存在"),
-    email=UniqueDetails(message="邮件已存在")
+    email=UniqueDetails(message="邮件已存在"),
 )
 async def update_user(
     *,
@@ -245,7 +270,7 @@ async def get_affiliation_tree(*, node_id: int, keyword: str = "") -> list[Affil
     affiliation_list: list[AffiliationInfoResponse] = await fetch_all(
         select(AffiliationTable).where(
             AffiliationTable.nodeId == node_id,
-            like(field=AffiliationTable.name, keyword=keyword)
+            like(field=AffiliationTable.name, keyword=keyword),
         )
     )
 
@@ -301,7 +326,10 @@ async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResp
     menu_list: list[MenuInfoResponse] = await fetch_all(
         select(MenuTable).where(
             MenuTable.nodeId == node_id,
-            or_(like(field=MenuTable.name, keyword=keyword), like(field=MenuTable.identifier, keyword=keyword))
+            or_(
+                like(field=MenuTable.name, keyword=keyword),
+                like(field=MenuTable.identifier, keyword=keyword),
+            ),
         )
     )
 
@@ -331,7 +359,10 @@ async def edit_role(*, role_id: int, name: str, identifier: str, identifier_list
         role.identifierList = identifier_list
         return await update_one(role)
 
-    return await insert_one(RoleTable, RoleCreate(name=name, identifier=identifier, identifier_list=identifier_list))
+    return await insert_one(
+        RoleTable,
+        RoleCreate(name=name, identifier=identifier, identifier_list=identifier_list),
+    )
 
 
 async def get_role_list(page: int, size: int, *, keyword: str = "") -> list[RoleInfoResponse]:
@@ -346,10 +377,13 @@ async def get_role_list(page: int, size: int, *, keyword: str = "") -> list[Role
 
     return await fetch_page(
         select(RoleTable).where(
-            or_(like(field=RoleTable.name, keyword=keyword), like(field=RoleTable.identifier, keyword=keyword))
+            or_(
+                like(field=RoleTable.name, keyword=keyword),
+                like(field=RoleTable.identifier, keyword=keyword),
+            )
         ),
         page=page,
-        size=size
+        size=size,
     )
 
 

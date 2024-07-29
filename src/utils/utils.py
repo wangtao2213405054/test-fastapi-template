@@ -63,12 +63,12 @@ def pinyin(chinese_characters: str) -> str:
     :return:
     """
 
-    _pinyin = ''
+    _pinyin = ""
     for item in pypinyin.pinyin(chinese_characters, style=pypinyin.NORMAL):
-        _pinyin += ''.join(item).capitalize()
+        _pinyin += "".join(item).capitalize()
 
     return _pinyin
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print(join_path("123"))

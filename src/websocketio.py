@@ -11,7 +11,8 @@ import time
 
 
 class UserInfo(BaseModel):
-    """ 用户信息 """
+    """用户信息"""
+
     userId: str  # 用户ID
     connectedAt: float  # 连接到的时间
     session: str  # 用户 Session
@@ -28,17 +29,17 @@ class SocketIO(socketio.AsyncServer):
         super(SocketIO, self).__init__(**kwargs)
 
     def __len__(self) -> int:
-        """ 返回当前用户总数 """
+        """返回当前用户总数"""
         return len(self._users)
 
     @property
     def empty(self) -> bool:
-        """ 检查房间是否为空 """
+        """检查房间是否为空"""
         return len(self._users) == 0
 
     @property
     def user_list(self) -> list[int]:
-        """ 返回当前房间内的所有用户 """
+        """返回当前房间内的所有用户"""
         return list(self._users)
 
     def add_user(self, user_id: int, sid: str) -> None:
@@ -51,11 +52,7 @@ class SocketIO(socketio.AsyncServer):
         if user_id in self._users:
             raise ValueError("用户已经存在于房间")
 
-        self._users[user_id] = UserInfo(
-            userId=user_id,
-            connectedAt=time.time(),
-            session=sid
-        )
+        self._users[user_id] = UserInfo(userId=user_id, connectedAt=time.time(), session=sid)
         self._session_user[sid] = user_id
 
     async def remove_user(self, user_id: int) -> None:
@@ -81,7 +78,7 @@ class SocketIO(socketio.AsyncServer):
         """
         return self._users.get(user_id)
 
-    async def whisper(self, user_id: int, message: dict[str: Any]) -> None:
+    async def whisper(self, user_id: int, message: dict[str:Any]) -> None:
         """
         向某一用户发送消息
         :param user_id: 用户ID
@@ -93,7 +90,7 @@ class SocketIO(socketio.AsyncServer):
 
         await self.emit(jsonable_encoder(message), to=self._users[user_id].session)
 
-    async def broadcast(self, message: dict[str: Any]) -> None:
+    async def broadcast(self, message: dict[str:Any]) -> None:
         """
         向房间内的所有用户广播一条消息
         :param message: 要广播的消息体

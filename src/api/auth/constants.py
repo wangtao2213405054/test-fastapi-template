@@ -2,8 +2,9 @@
 # _date: 2024/7/28 00:45
 # _description: 认证相关错误信息
 
+
 class ErrorCode:
-    """ 认证错误码实例 """
+    """认证错误码实例"""
 
     AUTHENTICATION_REQUIRED = "需要身份验证"
     AUTHORIZATION_FAILED = "授权失败，用户没有访问权限"

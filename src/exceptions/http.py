@@ -18,31 +18,36 @@ class DetailedHTTPException(HTTPException):
 
 
 class PermissionDenied(DetailedHTTPException):
-    """ 权限校验失败 """
+    """权限校验失败"""
+
     STATUS_CODE = status.HTTP_403_FORBIDDEN
     DETAIL = message.HTTP_403_FORBIDDEN
 
 
 class NotFound(DetailedHTTPException):
-    """ 资源未找到 """
+    """资源未找到"""
+
     STATUS_CODE = status.HTTP_404_NOT_FOUND
     DETAIL = message.HTTP_404_NOT_FOUND
 
 
 class BadRequest(DetailedHTTPException):
-    """ 请求错误 """
+    """请求错误"""
+
     STATUS_CODE = status.HTTP_400_BAD_REQUEST
     DETAIL = message.HTTP_400_BAD_REQUEST
 
 
 class BadData(DetailedHTTPException):
-    """ 错误数据 """
+    """错误数据"""
+
     STATUS_CODE = status.HTTP_461_BAD_DATA
     DETAIL = message.HTTP_461_BAD_DATA
 
 
 class NotAuthenticated(DetailedHTTPException):
-    """ 用户认证失败 """
+    """用户认证失败"""
+
     STATUS_CODE = status.HTTP_401_UNAUTHORIZED
     DETAIL = message.HTTP_401_UNAUTHORIZED
 

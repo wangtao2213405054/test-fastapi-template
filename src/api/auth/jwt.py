@@ -22,7 +22,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.PREFIX}/auth/swagger/l
 def create_access_token(
     *,
     user: dict[str, Any],
-    expires_delta: datetime.timedelta = datetime.timedelta(minutes=auth_config.ACCESS_TOKEN_EXP)
+    expires_delta: datetime.timedelta = datetime.timedelta(minutes=auth_config.ACCESS_TOKEN_EXP),
 ) -> str:
     """
     创建用户 Token
@@ -43,7 +43,7 @@ def create_access_token(
 def create_refresh_token(
     *,
     user: dict[str, Any],
-    expires_delta: datetime.timedelta = datetime.timedelta(minutes=auth_config.REFRESH_TOKEN_EXP)
+    expires_delta: datetime.timedelta = datetime.timedelta(minutes=auth_config.REFRESH_TOKEN_EXP),
 ) -> str:
     """
     创建 Refresh Token
@@ -72,9 +72,7 @@ async def parse_jwt_user_data_optional(token: Annotated[str, Depends(oauth2_sche
         return None
 
     try:
-        payload = jwt.decode(
-            token, auth_config.ACCESS_TOKEN_KEY, algorithms=[auth_config.JWT_ALG]
-        )
+        payload = jwt.decode(token, auth_config.ACCESS_TOKEN_KEY, algorithms=[auth_config.JWT_ALG])
     except JWTError:
         raise InvalidToken()
 

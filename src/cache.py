@@ -25,9 +25,7 @@ async def lifespan(_application: FastAPI) -> AsyncContextManager:
     :return:
     """
     # 挂载
-    pool = aioredis.ConnectionPool.from_url(
-        str(settings.REDIS_URL), max_connections=10, decode_responses=True
-    )
+    pool = aioredis.ConnectionPool.from_url(str(settings.REDIS_URL), max_connections=10, decode_responses=True)
     global redis_client
     redis_client = aioredis.Redis(connection_pool=pool)
 
