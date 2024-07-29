@@ -1,17 +1,29 @@
+# 服务器及业务依赖
 fastapi==0.111.1
-uvicorn[standard]==0.24.*
-pydantic==2.6.*
-pydantic_settings==2.2.*
-pydantic[email]==2.6.*
-python-jose==3.3.*
-sqlmodel==0.0.16
-cryptography==41.0.*
-asyncmy==0.2.9
-sqlalchemy==2.0.*
-bcrypt==4.1.*
-sentry_sdk==1.39.*
-redis==5.0.*
-python-socketio==5.11.*
-websocket-client==1.7.*
-mysql-connector-python==8.3.*
+uvicorn[standard]==0.30.3
 pypinyin==0.51.0
+
+# 错误监听
+sentry_sdk==2.11.0
+
+# 数据库相关
+redis==5.0.7
+sqlalchemy==2.0.31
+mysql-connector-python==9.0.0
+asyncmy==0.2.9
+alembic==1.13.2
+
+# 模型相关
+pydantic==2.8.2
+pydantic_settings==2.3.4
+pydantic[email]==2.8.2
+sqlmodel==0.0.21
+
+# 加密算法
+python-jose==3.3.0
+bcrypt==4.2.0
+cryptography==43.0.0
+
+# Socket
+python-socketio==5.11.3
+websocket-client==1.8.0

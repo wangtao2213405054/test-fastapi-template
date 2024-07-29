@@ -1,6 +1,12 @@
 
 from sqlmodel import SQLModel, create_engine, Session, select
-from src.api.auth.models.models import UserTable, UserCreate, MenuTable, MenuCreate, RoleTable, RoleCreate, AffiliationTable
+from src.api.auth.models.models import (
+    UserTable, UserCreate,
+    MenuTable, MenuCreate,
+    RoleTable, RoleCreate,
+    AffiliationTable
+)
+from src.api.auth.security import hash_password
 
 
 sqlite_file_name = "root:123456@127.0.0.1:33306/client"
@@ -45,11 +51,11 @@ def main():
         session.refresh(db_affiliation)
 
         user = UserCreate(
-            name="王涛",
-            username="WangTao",
-            email="2213405054@qq.com",
-            mobile="13520421043",
-            password="1123",
+            name="admin",
+            username="admin",
+            email="admin",
+            mobile="18888888888",
+            password=hash_password("123456"),
             roleId=db_role.id,
             affiliationId=db_affiliation.id
         )

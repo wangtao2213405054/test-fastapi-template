@@ -1,3 +1,6 @@
+# _author: Coke
+# _date: 2024/7/28 15:18
+# _description: Docker Compose 启动服务器, 包含代码服务器、Mysql、Redis
 
 services:
   app:  # 应用服务器

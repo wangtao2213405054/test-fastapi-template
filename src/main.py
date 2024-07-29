@@ -14,8 +14,7 @@ from src.models.types import ResponseModel
 from src.config import app_configs, settings
 from src.cache import lifespan
 
-from src.api.auth.router import router as auth_router
-from src.api.auth.public import router as public_auth_router
+from src.api import auth_router, public_auth_router
 
 from src.websocketio import socket_app
 from src.utils import analysis_json, join_path, create_dir

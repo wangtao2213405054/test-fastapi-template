@@ -1,3 +1,7 @@
+# _author: Coke
+# _date: 2024/7/28 14:05
+# _description: Docker 镜像部署服务器
+
 # 使用 Python 3.12.4 为镜像
 FROM python:3.12.4-slim-bookworm
 
