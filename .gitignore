@@ -138,6 +138,3 @@ node_modules/
 backup.dump
 backup.dump.gz
 .vscode
-
-# test file
-test*.py

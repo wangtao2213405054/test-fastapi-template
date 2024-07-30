@@ -20,6 +20,7 @@ redis_client: Redis
 async def lifespan(_application: FastAPI) -> AsyncContextManager:
     """
     FastAPI 启动时挂载 Redis 停止时释放 Redis
+
     :param _application: FastAPI 应用
     :return:
     """
@@ -39,6 +40,7 @@ async def lifespan(_application: FastAPI) -> AsyncContextManager:
 async def set_redis_key(redis_data: RedisData, *, is_transaction: bool = False) -> None:
     """
     在 Redis 中设置键值对
+
     :param redis_data: 要设置的数据 <RedisData>
     :param is_transaction: 是否使用 Redis 的事务功能
     :return:
@@ -54,6 +56,7 @@ async def set_redis_key(redis_data: RedisData, *, is_transaction: bool = False) 
 async def get_by_key(key: str) -> str | None:
     """
     通过 key 获取 Redis 数据
+
     :param key: 要获取数据的 Key
     :return:
     """
@@ -63,6 +66,7 @@ async def get_by_key(key: str) -> str | None:
 async def delete_by_key(key: str) -> None:
     """
     通过 Key 删除 Redis 的数据
+
     :param key: 要删除数据的 Key
     :return:
     """

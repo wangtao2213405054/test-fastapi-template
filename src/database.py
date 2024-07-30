@@ -4,7 +4,7 @@
 
 from datetime import datetime
 from functools import wraps
-from typing import Any, Callable, Type, TypeVar, Union
+from typing import Any, Callable, Type, TypeVar
 
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
@@ -37,7 +37,7 @@ class UniqueDetails(BaseModel):
 
 
 def unique_check(
-    table: Type[SQLModel], *, func_key: str = None, model_key: str = None, **unique: Union[UniqueDetails, str]
+    table: Type[SQLModel], *, func_key: str = None, model_key: str = None, **unique: UniqueDetails | str
 ) -> Callable[..., Any]:
     """
     检查数据在数据表中是否存在相同的数据, 此装饰器会在 FastAPI 校验参数之前执行...

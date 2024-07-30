@@ -6,7 +6,7 @@ import logging
 import time
 import traceback
 import uuid
-from typing import Awaitable, Callable, Union
+from typing import Awaitable, Callable
 
 import sentry_sdk
 from fastapi import FastAPI, Request, status
@@ -33,7 +33,7 @@ app.mount("/socket", socket_app)
 
 # 错误捕获与转发
 @app.exception_handler(Exception)
-async def passive_exception_handler(_request: Request, exc: Exception):
+async def passive_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
     """
     对非主动抛出的异常进行捕获, 外部状态码为 200, 内部状态码
 
@@ -60,7 +60,7 @@ async def passive_exception_handler(_request: Request, exc: Exception):
 
 
 @app.exception_handler(DetailedHTTPException)
-async def active_exception_handler(_request: Request, exc: DetailedHTTPException):
+async def active_exception_handler(_request: Request, exc: DetailedHTTPException) -> JSONResponse:
     """
     对所有主动抛出的异常做了转发, 所有的状态码都是 200, 并将详细信息填写入返回值信息中
 
@@ -81,7 +81,7 @@ async def active_exception_handler(_request: Request, exc: DetailedHTTPException
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_handler(_request: Request, exc: RequestValidationError):
+async def validation_handler(_request: Request, exc: RequestValidationError) -> JSONResponse:
     """
     对入参错误异常做了转发, 当前响应码为 200, 并将错误信息返回至data 中
     jsonable_encoder 会将数据类型转换成 JSON兼容类型, exc 的 ctx 可能会出现对象, 我们需要调用这个方法来兼容
@@ -119,7 +119,7 @@ app.add_middleware(
 @app.middleware("http")
 async def http_middleware(
     request: Request, callback: Callable[[Request], Awaitable[StreamingResponse]]
-) -> Union[JSONResponse, StreamingResponse]:
+) -> JSONResponse | StreamingResponse:
     """
     HTTP 中间件, 用于记录请求信息和响应信息
 

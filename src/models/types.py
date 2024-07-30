@@ -15,6 +15,16 @@ T = TypeVar("T")
 
 
 def convert_datetime_to_gmt(dt: datetime) -> str:
+    """
+    将给定的 datetime 对象转换为 GMT 格式的字符串。
+
+    如果 datetime 对象是天真的（即不包含时区信息）
+    则假设其为 UTC 并相应地设置时区。
+
+    :param dt: 要转换的 datetime 对象
+    :return: 以 "%Y-%m-%d %H:%M:%S" 格式返回的 GMT 时间字符串。
+    """
+
     if not dt.tzinfo:
         dt = dt.replace(tzinfo=ZoneInfo("UTC"))
     return dt.strftime("%Y-%m-%d %H:%M:%S")
@@ -33,6 +43,7 @@ class CustomModel(BaseModel):
     def set_null_microseconds(cls, data: dict[str, Any]) -> dict[str, Any]:
         """
         将继承与此中包含 datetime 类中的微秒部分置为 0
+
         :param data:
         :return:
         """
@@ -43,6 +54,7 @@ class CustomModel(BaseModel):
     def serializable_dict(self) -> dict:
         """
         返回一个兼容 JSON 类型的字典
+
         :return:
         """
         default_dict = self.model_dump()
@@ -55,6 +67,7 @@ class CustomModel(BaseModel):
         将 驼峰体命名风格 转换为 下换线命名模式
         适用于请求体和入参相同的情况
         并不推荐使用, 目前是基于 FastApi Body 中的过滤才可以使用
+
         :return:
         """
         body = self.serializable_dict()

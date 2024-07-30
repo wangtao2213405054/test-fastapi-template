@@ -1,9 +1,8 @@
-import asyncio
-from typing import Generator, AsyncGenerator
+from typing import AsyncGenerator
 
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 
 from src.main import app
 
@@ -22,27 +21,12 @@ def run_migrations() -> None:
         - 在测试会话结束时，回滚数据库迁移，将数据库恢复到基础版本。
     :return:
     """
-    import os
+    # import os
 
     print("正在运行数据库迁移...")
-    os.system("alembic upgrade head")
+    # os.system("alembic upgrade head")
     yield
-    os.system("alembic downgrade base")
-
-
-@pytest.fixture(scope="session")
-def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
-    """
-    Fixture 用于创建一个新的异步事件循环，并在测试会话中共享。
-
-    这个 fixture 在整个测试会话中只创建一个事件循环实例，并在所有测试用例中共享。
-    测试用例可以通过这个 fixture 使用事件循环，并在测试完成后关闭它。
-
-    :return: Generator[asyncio.AbstractEventLoop, None, None]: 一个生成器，生成 `asyncio.AbstractEventLoop` 实例。
-    """
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
+    # os.system("alembic downgrade base")
 
 
 @pytest_asyncio.fixture
@@ -55,5 +39,9 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
 
     :return: AsyncGenerator[AsyncClient, None]: 一个异步生成器，生成 `AsyncClient` 实例。
     """
-    async with AsyncClient(app=app, base_url="http://localhost:8006/api/v1/client") as client:
+
+    # 使用 httpx 官方推荐的方式传递 APP时会出现类型提示错误
+    # noinspection PyTypeChecker
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://localhost:8006/api/v1/client") as client:
         yield client
