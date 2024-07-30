@@ -2,16 +2,15 @@
 # _date: 2024/7/26 17:25
 # _description: 数据库操作相关函数
 
-from typing import Type, TypeVar, Any, Callable, Union
 from datetime import datetime
-from pydantic import BaseModel
 from functools import wraps
+from typing import Any, Callable, Type, TypeVar, Union
 
 from fastapi.encoders import jsonable_encoder
-
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy import Select, Insert, Update, MetaData, BinaryExpression
+from pydantic import BaseModel
+from sqlalchemy import BinaryExpression, Insert, MetaData, Select, Update
 from sqlalchemy.exc import DatabaseError
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel, col, select
 
 from src.config import settings
@@ -38,11 +37,7 @@ class UniqueDetails(BaseModel):
 
 
 def unique_check(
-    table: Type[SQLModel],
-    *,
-    func_key: str = None,
-    model_key: str = None,
-    **unique: Union[UniqueDetails, str],
+    table: Type[SQLModel], *, func_key: str = None, model_key: str = None, **unique: Union[UniqueDetails, str]
 ) -> Callable[..., Any]:
     """
     检查数据在数据表中是否存在相同的数据, 此装饰器会在 FastAPI 校验参数之前执行...

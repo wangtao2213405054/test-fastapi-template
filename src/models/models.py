@@ -2,10 +2,12 @@
 # _date: 2024/7/28 00:56
 # _description: 基础数据库模型
 
-from sqlmodel import SQLModel, Field
-from src.models.types import convert_datetime_to_gmt
 from datetime import datetime
+
 from pydantic import ConfigDict
+from sqlmodel import Field, SQLModel
+
+from src.models.types import convert_datetime_to_gmt
 
 
 class BaseModel(SQLModel):
@@ -16,7 +18,5 @@ class BaseModel(SQLModel):
     updateTime: datetime = Field(default_factory=datetime.now, description="更新时间")  # 记录的更新时间
 
     model_config = ConfigDict(
-        from_attributes=True,
-        json_encoders={datetime: convert_datetime_to_gmt},
-        populate_by_name=True,
+        from_attributes=True, json_encoders={datetime: convert_datetime_to_gmt}, populate_by_name=True
     )

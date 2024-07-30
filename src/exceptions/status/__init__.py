@@ -1,6 +1,13 @@
-from .database import *
-from .http import *
-from starlette.status import *
+from .database import (
+    DATABASE_600_BAD_SQL,
+    DATABASE_601_ERROR_INSERT,
+    DATABASE_602_ERROR_UPDATE,
+    DATABASE_603_ERROR_DELETE,
+    DATABASE_604_ERROR_QUERY,
+    DATABASE_610_NOT_FOUND,
+    DATABASE_611_UNIQUE,
+)
+from .http import HTTP_461_BAD_DATA
 
 __all__ = [
     "DATABASE_610_NOT_FOUND",
@@ -9,6 +16,6 @@ __all__ = [
     "DATABASE_601_ERROR_INSERT",
     "DATABASE_602_ERROR_UPDATE",
     "DATABASE_603_ERROR_DELETE",
-    "HTTP_500_INTERNAL_SERVER_ERROR",
+    "DATABASE_611_UNIQUE",
     "HTTP_461_BAD_DATA",
 ]

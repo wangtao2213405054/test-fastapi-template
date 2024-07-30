@@ -2,19 +2,19 @@
 # _date: 2024/7/27 21:24
 # _description: JWT Token 令牌
 
-from typing import Any, Annotated
+import datetime
+import uuid
+from typing import Annotated, Any
 
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 
 from src.api.auth.config import auth_config
-from src.config import settings
 from src.api.auth.exceptions import AuthorizationFailed, AuthRequired, InvalidToken
-from .models.types import JWTData
+from src.config import settings
 
-import datetime
-import uuid
+from .models.types import JWTData
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.PREFIX}/auth/swagger/login", auto_error=False)
 
@@ -32,10 +32,7 @@ def create_access_token(
     :return: Token
     """
 
-    jwt_data = dict(
-        sub=str(user.get("id")),
-        exp=datetime.datetime.now(datetime.UTC) + expires_delta,
-    )
+    jwt_data = dict(sub=str(user.get("id")), exp=datetime.datetime.now(datetime.UTC) + expires_delta)
 
     return jwt.encode(jwt_data, auth_config.ACCESS_TOKEN_KEY, algorithm=auth_config.JWT_ALG)
 
@@ -54,9 +51,7 @@ def create_refresh_token(
     """
 
     jwt_data = dict(
-        sub=str(user.get("id")),
-        exp=datetime.datetime.now(datetime.UTC) + expires_delta,
-        uuid=str(uuid.uuid4()),
+        sub=str(user.get("id")), exp=datetime.datetime.now(datetime.UTC) + expires_delta, uuid=str(uuid.uuid4())
     )
     return jwt.encode(jwt_data, auth_config.REFRESH_TOKEN_KEY, algorithm=auth_config.JWT_ALG)
 

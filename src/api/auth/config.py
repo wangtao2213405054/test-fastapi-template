@@ -2,10 +2,12 @@
 # _date: 2024/7/26 14:19
 # _description: 验证相关配置信息
 
-from pydantic_settings import BaseSettings
-from .security import generate_rsa_key_pair
-from cryptography.hazmat.primitives.asymmetric import rsa
 from typing import Any
+
+from cryptography.hazmat.primitives.asymmetric import rsa
+from pydantic_settings import BaseSettings
+
+from .security import generate_rsa_key_pair
 
 
 class AuthConfig(BaseSettings):

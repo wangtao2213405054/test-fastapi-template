@@ -3,12 +3,9 @@
 # _description: 用户验证相关请求模型
 
 from fastapi import Body
-from pydantic import Field, field_validator, EmailStr, HttpUrl
-from src.models.types import (
-    CustomModel,
-    GeneralKeywordPageRequestModel,
-    GeneralKeywordRequestModel,
-)
+from pydantic import EmailStr, Field, HttpUrl, field_validator
+
+from src.models.types import CustomModel, GeneralKeywordPageRequestModel, GeneralKeywordRequestModel
 from src.utils import validate
 
 

@@ -2,14 +2,12 @@
 # _date: 2024/7/26 14:15
 # _description: 密码加密相关
 
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import hashes
+import base64
 from typing import Tuple
 
 import bcrypt
-import base64
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 
 def generate_rsa_key_pair() -> Tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
@@ -46,8 +44,7 @@ def serialize_key(key, is_private: bool = True) -> bytes:
     else:
         # 序列化为公钥 PEM 格式
         return key.public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+            encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
 
 
@@ -112,15 +109,3 @@ def check_password(password: str, password_in_db: bytes) -> bool:
     """
     password_bytes = bytes(password, "utf-8")
     return bcrypt.checkpw(password_bytes, password_in_db)
-
-
-if __name__ == "__main__":
-    private_key, public_key = generate_rsa_key_pair()
-    _message = "this is a test message"
-    # 加密
-    encrypted_message = encrypt_message(public_key, _message)
-    print(encrypted_message)
-
-    # 解密
-    decrypted_message = decrypt_message(private_key, encrypted_message)
-    print(decrypted_message)

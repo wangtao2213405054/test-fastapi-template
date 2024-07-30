@@ -3,8 +3,10 @@
 # _description: 数据库异常
 
 from typing import Any
+
+from src.exceptions import message, status
+
 from .http import DetailedHTTPException
-from src.exceptions import status, message
 
 
 class DatabaseConflictError(DetailedHTTPException):

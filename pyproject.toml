@@ -1,18 +1,20 @@
 [tool.ruff]
 # 使用 PyCharm 而非 PEP 8 的 88
 line-length = 120
+target-version = "py312"
+indent-width = 4
 
+[tool.ruff.lint]
 # 默认启用 Pyflakes 的 E 和 F 错误代码
 select = [
-    # Pyflakes
     "F",
-    # Pycodestyle
     "E",
     "W",
-    # isort
     "I001",
 ]
 ignore = []
+per-file-ignores = {}
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 # 不需要进行检查的目录或文件
 exclude = [
@@ -20,31 +22,31 @@ exclude = [
     ".direnv",
     ".eggs",
     ".git",
+    ".git-rewrite",
     ".hg",
+    ".ipynb_checkpoints",
     ".mypy_cache",
     ".nox",
     ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
     ".ruff_cache",
     ".svn",
     ".tox",
     ".venv",
+    ".vscode",
+    ".idea",
     "__pypackages__",
     "_build",
     "buck-out",
     "build",
     "dist",
     "node_modules",
+    "site-packages",
     "venv",
 ]
-per-file-ignores = {}
 
-# 允许那些以单下划线 (_) 开头的变量，即使这些变量没有被使用
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-
-# Assume Python 3.12.
-target-version = "py312"
-
-[tool.ruff.mccabe]
-
+[tool.ruff.lint.mccabe]
 # 设置复杂度级别为 10
 max-complexity = 10

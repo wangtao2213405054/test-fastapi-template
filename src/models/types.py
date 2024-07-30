@@ -2,15 +2,14 @@
 # _date: 2024/7/28 00:57
 # _description: 基础 请求/响应 模型
 
+import re
 from datetime import datetime, timedelta
-from typing import Any, TypeVar, Generic
-from zoneinfo import ZoneInfo
 from time import time
+from typing import Any, Generic, TypeVar
+from zoneinfo import ZoneInfo
 
 from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel, ConfigDict, model_validator, Field
-
-import re
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 T = TypeVar("T")
 
@@ -25,9 +24,7 @@ class CustomModel(BaseModel):
     """通用模型"""
 
     model_config = ConfigDict(
-        from_attributes=True,
-        json_encoders={datetime: convert_datetime_to_gmt},
-        populate_by_name=True,
+        from_attributes=True, json_encoders={datetime: convert_datetime_to_gmt}, populate_by_name=True
     )
 
     # noinspection PyNestedDecorators

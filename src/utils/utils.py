@@ -2,14 +2,13 @@
 # _date: 2024/7/25 13:44
 # _description: 工具集合
 
+import json
+import os
+import random
+import string
 from typing import Union
 
 import pypinyin
-import random
-import string
-import json
-import os
-
 
 ALPHA_NUM = string.ascii_letters + string.digits
 

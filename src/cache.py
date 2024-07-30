@@ -2,16 +2,15 @@
 # _date: 2024/7/28 00:53
 # _description: Redis 缓存数据库
 
-from typing import AsyncContextManager
 from contextlib import asynccontextmanager
+from typing import AsyncContextManager
 
-from fastapi import FastAPI
-
-from redis.asyncio import Redis
 import redis.asyncio as aioredis
+from fastapi import FastAPI
+from redis.asyncio import Redis
 
-from src.models.types import RedisData
 from src.config import settings
+from src.models.types import RedisData
 
 # Redis
 redis_client: Redis

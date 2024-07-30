@@ -5,11 +5,13 @@
 from typing import Any
 
 from fastapi import HTTPException
-from src.exceptions import status, message
+from fastapi import status as http_status
+
+from src.exceptions import message, status
 
 
 class DetailedHTTPException(HTTPException):
-    STATUS_CODE = status.HTTP_500_INTERNAL_SERVER_ERROR
+    STATUS_CODE = http_status.HTTP_500_INTERNAL_SERVER_ERROR
     DETAIL = message.HTTP_500_INTERNAL_SERVER_ERROR
     ERRORS: dict | None = None
 
@@ -20,21 +22,21 @@ class DetailedHTTPException(HTTPException):
 class PermissionDenied(DetailedHTTPException):
     """权限校验失败"""
 
-    STATUS_CODE = status.HTTP_403_FORBIDDEN
+    STATUS_CODE = http_status.HTTP_403_FORBIDDEN
     DETAIL = message.HTTP_403_FORBIDDEN
 
 
 class NotFound(DetailedHTTPException):
     """资源未找到"""
 
-    STATUS_CODE = status.HTTP_404_NOT_FOUND
+    STATUS_CODE = http_status.HTTP_404_NOT_FOUND
     DETAIL = message.HTTP_404_NOT_FOUND
 
 
 class BadRequest(DetailedHTTPException):
     """请求错误"""
 
-    STATUS_CODE = status.HTTP_400_BAD_REQUEST
+    STATUS_CODE = http_status.HTTP_400_BAD_REQUEST
     DETAIL = message.HTTP_400_BAD_REQUEST
 
 
@@ -48,7 +50,7 @@ class BadData(DetailedHTTPException):
 class NotAuthenticated(DetailedHTTPException):
     """用户认证失败"""
 
-    STATUS_CODE = status.HTTP_401_UNAUTHORIZED
+    STATUS_CODE = http_status.HTTP_401_UNAUTHORIZED
     DETAIL = message.HTTP_401_UNAUTHORIZED
 
     def __init__(self) -> None:

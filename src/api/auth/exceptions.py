@@ -3,7 +3,7 @@
 # _description: 用户认证相关异常
 
 from src.api.auth.constants import ErrorCode
-from src.exceptions import NotAuthenticated, PermissionDenied, BadData
+from src.exceptions import BadData, NotAuthenticated, PermissionDenied
 
 
 class AuthRequired(NotAuthenticated):

@@ -2,53 +2,47 @@
 # _date: 2024/7/26 14:20
 # _description: Auth 验证相关的服务器业务逻辑
 
-from fastapi import Depends
+import logging
 from typing import Annotated
 
-from sqlmodel import select, or_
+from fastapi import Depends
+from sqlmodel import or_, select
 
 from src import utils
-from src.utils import validate
 from src.database import (
-    insert_one,
-    fetch_all,
-    update_one,
-    select_one,
-    fetch_page,
-    delete_one,
-    like,
     UniqueDetails,
+    delete_one,
+    fetch_all,
+    fetch_page,
+    insert_one,
+    like,
+    select_one,
     unique_check,
+    update_one,
 )
+from src.utils import validate
 
-from .models.types import JWTData
 from .config import auth_config
+from .exceptions import InvalidPassword, InvalidUsername, StandardsPassword, WrongPassword
 from .jwt import parse_jwt_user_data
-from .exceptions import (
-    InvalidPassword,
-    StandardsPassword,
-    WrongPassword,
-    InvalidUsername,
-)
-from .security import serialize_key, decrypt_message, hash_password, check_password
 from .models.models import (
-    UserTable,
-    UserResponse,
-    UserCreate,
-    MenuTable,
+    AffiliationCreate,
+    AffiliationInfoResponse,
+    AffiliationListResponse,
+    AffiliationTable,
     MenuCreate,
-    MenuListResponse,
     MenuInfoResponse,
-    RoleTable,
+    MenuListResponse,
+    MenuTable,
     RoleCreate,
     RoleInfoResponse,
-    AffiliationTable,
-    AffiliationCreate,
-    AffiliationListResponse,
-    AffiliationInfoResponse,
+    RoleTable,
+    UserCreate,
+    UserResponse,
+    UserTable,
 )
-
-import logging
+from .models.types import JWTData
+from .security import check_password, decrypt_message, hash_password, serialize_key
 
 
 def get_public_key() -> str:
@@ -71,33 +65,22 @@ def decrypt_password(password: str) -> str:
     :return:
     """
     try:
-        decrypt_password = decrypt_message(auth_config.PRIVATE_KEY, password)
+        rsa_password = decrypt_message(auth_config.PRIVATE_KEY, password)
 
     except Exception as e:
         logging.error(e)
         raise InvalidPassword()
 
-    verify_password = validate.password(decrypt_password)
+    verify_password = validate.password(rsa_password)
     if not verify_password:
         raise StandardsPassword()
 
-    return decrypt_password
+    return rsa_password
 
 
-@unique_check(
-    UserTable,
-    mobile=UniqueDetails(message="手机已号存在"),
-    email=UniqueDetails(message="邮件已存在"),
-)
+@unique_check(UserTable, mobile=UniqueDetails(message="手机已号存在"), email=UniqueDetails(message="邮件已存在"))
 async def create_user(
-    *,
-    name: str,
-    email: str,
-    mobile: str,
-    password: str,
-    affiliation_id: int,
-    avatar: str = None,
-    role_id: int = None,
+    *, name: str, email: str, mobile: str, password: str, affiliation_id: int, avatar: str = None, role_id: int = None
 ) -> UserResponse:
     """
     创建 一个新的用户
@@ -269,8 +252,7 @@ async def get_affiliation_tree(*, node_id: int, keyword: str = "") -> list[Affil
 
     affiliation_list: list[AffiliationInfoResponse] = await fetch_all(
         select(AffiliationTable).where(
-            AffiliationTable.nodeId == node_id,
-            like(field=AffiliationTable.name, keyword=keyword),
+            AffiliationTable.nodeId == node_id, like(field=AffiliationTable.name, keyword=keyword)
         )
     )
 
@@ -326,10 +308,7 @@ async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResp
     menu_list: list[MenuInfoResponse] = await fetch_all(
         select(MenuTable).where(
             MenuTable.nodeId == node_id,
-            or_(
-                like(field=MenuTable.name, keyword=keyword),
-                like(field=MenuTable.identifier, keyword=keyword),
-            ),
+            or_(like(field=MenuTable.name, keyword=keyword), like(field=MenuTable.identifier, keyword=keyword)),
         )
     )
 
@@ -359,10 +338,7 @@ async def edit_role(*, role_id: int, name: str, identifier: str, identifier_list
         role.identifierList = identifier_list
         return await update_one(role)
 
-    return await insert_one(
-        RoleTable,
-        RoleCreate(name=name, identifier=identifier, identifier_list=identifier_list),
-    )
+    return await insert_one(RoleTable, RoleCreate(name=name, identifier=identifier, identifier_list=identifier_list))
 
 
 async def get_role_list(page: int, size: int, *, keyword: str = "") -> list[RoleInfoResponse]:
@@ -377,10 +353,7 @@ async def get_role_list(page: int, size: int, *, keyword: str = "") -> list[Role
 
     return await fetch_page(
         select(RoleTable).where(
-            or_(
-                like(field=RoleTable.name, keyword=keyword),
-                like(field=RoleTable.identifier, keyword=keyword),
-            )
+            or_(like(field=RoleTable.name, keyword=keyword), like(field=RoleTable.identifier, keyword=keyword))
         ),
         page=page,
         size=size,

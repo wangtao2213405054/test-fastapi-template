@@ -2,29 +2,26 @@
 # _date: 2024/7/25 17:05
 # _description: 服务主入口, 包含了错误处理、日志、中间件、路由等...
 
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+import logging
+import time
+import traceback
+import uuid
+from typing import Awaitable, Callable, Union
+
+import sentry_sdk
+from fastapi import FastAPI, Request, status
+from fastapi.concurrency import iterate_in_threadpool
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.concurrency import iterate_in_threadpool
-
-from src.exceptions import DetailedHTTPException, status, message
-from src.models.types import ResponseModel
-from src.config import app_configs, settings
-from src.cache import lifespan
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from src.api import auth_router, public_auth_router
-
+from src.cache import lifespan
+from src.config import app_configs, settings
+from src.exceptions import DetailedHTTPException, message
+from src.models.types import ResponseModel
 from src.websocketio import socket_app
-from typing import Callable, Awaitable, Union
-
-import sentry_sdk
-import traceback
-import logging
-import time
-import uuid
-
 
 # 初始化 Fast Api 并写入接口的 prefix
 app = FastAPI(**app_configs, lifespan=lifespan)
@@ -153,10 +150,7 @@ async def http_middleware(
 
 # 部署环境下打开 Sentry 服务 用于错误跟踪和监控
 if settings.ENVIRONMENT.is_deployed:
-    sentry_sdk.init(
-        dsn=settings.SENTRY_DSN,
-        environment=settings.ENVIRONMENT,
-    )
+    sentry_sdk.init(dsn=settings.SENTRY_DSN, environment=settings.ENVIRONMENT)
 
 
 # 路由注册区域

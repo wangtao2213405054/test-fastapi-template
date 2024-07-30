@@ -2,12 +2,12 @@
 # _date: 2024/7/28 00:53
 # _description: Socket IO 挂载服务
 
+import time
 from typing import Any
-from pydantic import BaseModel
-from fastapi.encoders import jsonable_encoder
 
 import socketio
-import time
+from fastapi.encoders import jsonable_encoder
+from pydantic import BaseModel
 
 
 class UserInfo(BaseModel):

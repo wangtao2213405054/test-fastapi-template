@@ -2,48 +2,48 @@
 # _date: 2024/7/25 14:15
 # _description: 用户验证相关路由
 
-from fastapi import APIRouter, Depends
-from typing import Any, Annotated
+from typing import Annotated, Any
 
-from .models.types import (
-    CreateUserRequest,
-    UpdateUserInfoRequest,
-    UpdatePasswordRequest,
-    AuthGetMenuRequest,
-    AuthEditMenuRequest,
-    AuthEditRoleRequest,
-    AuthGetRoleListRequest,
-    AuthEditAffiliationRequest,
-    AuthGetAffiliationListRequest,
-)
-from .service import (
-    create_user,
-    update_password,
-    update_user,
-    get_current_user,
-    edit_role,
-    get_role_list,
-    delete_role,
-    edit_menu,
-    get_menu_tree,
-    delete_menu,
-    edit_affiliation,
-    get_affiliation_tree,
-    delete_affiliation,
-)
+from fastapi import APIRouter, Depends
+
+from src.models.types import DeleteRequestModel, ResponseModel
+from src.websocketio import socket
+
 from .jwt import parse_jwt_user_data
 from .models.models import (
-    UserResponse,
+    AffiliationInfoResponse,
+    AffiliationListResponse,
     MenuInfoResponse,
     MenuListResponse,
     RoleInfoResponse,
-    AffiliationListResponse,
-    AffiliationInfoResponse,
+    UserResponse,
 )
-
-from src.models.types import ResponseModel, DeleteRequestModel
-from src.websocketio import socket
-
+from .models.types import (
+    AuthEditAffiliationRequest,
+    AuthEditMenuRequest,
+    AuthEditRoleRequest,
+    AuthGetAffiliationListRequest,
+    AuthGetMenuRequest,
+    AuthGetRoleListRequest,
+    CreateUserRequest,
+    UpdatePasswordRequest,
+    UpdateUserInfoRequest,
+)
+from .service import (
+    create_user,
+    delete_affiliation,
+    delete_menu,
+    delete_role,
+    edit_affiliation,
+    edit_menu,
+    edit_role,
+    get_affiliation_tree,
+    get_current_user,
+    get_menu_tree,
+    get_role_list,
+    update_password,
+    update_user,
+)
 
 router = APIRouter(prefix="/auth", dependencies=[Depends(parse_jwt_user_data)])
 
@@ -57,11 +57,7 @@ async def user_edit(body: CreateUserRequest) -> ResponseModel[UserResponse]:
     :return:
     """
     user = await create_user(
-        name=body.name,
-        email=body.email,
-        mobile=body.mobile,
-        password=body.password,
-        affiliation_id=body.affiliationId,
+        name=body.name, email=body.email, mobile=body.mobile, password=body.password, affiliation_id=body.affiliationId
     )
 
     return ResponseModel(data=user)
@@ -159,10 +155,7 @@ async def role_edit(body: AuthEditRoleRequest) -> ResponseModel:
     :return:
     """
     await edit_role(
-        role_id=body.id,
-        name=body.name,
-        identifier=body.identifier,
-        identifier_list=body.menuIdentifierList,
+        role_id=body.id, name=body.name, identifier=body.identifier, identifier_list=body.menuIdentifierList
     )
 
     return ResponseModel()

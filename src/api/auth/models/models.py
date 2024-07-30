@@ -2,7 +2,8 @@
 # _date: 2023/12/11 23:00
 # _description: 认证相关数据库响应模型
 
-from sqlmodel import Field, Relationship, Column, JSON
+from sqlmodel import JSON, Column, Field, Relationship
+
 from src.models import BaseModel
 
 
@@ -34,7 +35,6 @@ class RoleTable(RoleBase, table=True):
 
 
 class RoleCreate(RoleBase):
-
     """用于创建新的角色实例"""
 
 

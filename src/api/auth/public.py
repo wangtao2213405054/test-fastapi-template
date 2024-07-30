@@ -2,21 +2,16 @@
 # _date: 2024/7/25 14:15
 # _description: 用户验证公开路由
 
-from fastapi import APIRouter, Depends
-from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated
 
-from .service import get_public_key, authenticate_user, decrypt_password
-from .models.types import (
-    AccessTokenResponse,
-    AuthLoginRequest,
-    SwaggerToken,
-    RefreshTokenRequest,
-)
+from fastapi import APIRouter, Depends
+from fastapi.security import OAuth2PasswordRequestForm
 
 from src.api.auth import jwt
 from src.models.types import ResponseModel
 
+from .models.types import AccessTokenResponse, AuthLoginRequest, RefreshTokenRequest, SwaggerToken
+from .service import authenticate_user, decrypt_password, get_public_key
 
 router = APIRouter(prefix="/auth")
 
@@ -63,5 +58,4 @@ async def user_login(body: AuthLoginRequest) -> ResponseModel[AccessTokenRespons
 
 
 @router.post("/refresh/token")
-async def refresh_token(body: RefreshTokenRequest) -> ResponseModel[AccessTokenResponse]:
-    ...
+async def refresh_user_token(body: RefreshTokenRequest) -> ResponseModel[AccessTokenResponse]: ...
