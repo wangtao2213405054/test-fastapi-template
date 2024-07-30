@@ -49,24 +49,28 @@ def get_public_key() -> str:
     """
     返回当前服务的公钥
 
-    :return:
+    该函数序列化并返回当前服务的公钥，以 PEM 格式编码为字符串。
+
+    :return: 公钥的 PEM 格式字符串
     """
     public_key_pem = serialize_key(auth_config.PUBLIC_KEY, is_private=False)
-
     return public_key_pem.decode("utf-8")
 
 
 def decrypt_password(password: str) -> str:
     """
     对传递过来的密码进行 RSA 解密
-    如果处理失败抛出 <InvalidPassword> or <StandardsPassword> 错误
+    如果处理失败抛出 <InvalidPassword> 或 <StandardsPassword> 错误
+
+    该函数使用 RSA 私钥解密传递的加密密码，并验证其符合标准。如果解密或验证失败，则抛出适当的异常。
 
     :param password: 加密的密码
-    :return:
+    :return: 解密后的密码
+    :raises InvalidPassword: 解密失败时抛出
+    :raises StandardsPassword: 密码不符合标准时抛出
     """
     try:
         rsa_password = decrypt_message(auth_config.PRIVATE_KEY, password)
-
     except Exception as e:
         logging.error(e)
         raise InvalidPassword()
@@ -78,23 +82,24 @@ def decrypt_password(password: str) -> str:
     return rsa_password
 
 
-@unique_check(UserTable, mobile=UniqueDetails(message="手机已号存在"), email=UniqueDetails(message="邮件已存在"))
+@unique_check(UserTable, mobile=UniqueDetails(message="手机号码已存在"), email=UniqueDetails(message="邮件已存在"))
 async def create_user(
     *, name: str, email: str, mobile: str, password: str, affiliation_id: int, avatar: str = None, role_id: int = None
 ) -> UserResponse:
     """
-    创建 一个新的用户
+    创建一个新的用户
+
+    该函数创建一个新的用户记录，并将其插入数据库。用户的密码经过解密和哈希处理，以确保安全性。
 
     :param name: 用户名称
-    :param email: 用户游戏
-    :param mobile: 用户手机号
-    :param password: 用户密码
-    :param avatar: 头像
-    :param role_id: 角色ID
-    :param affiliation_id: 所属关系ID
-    :return:
+    :param email: 用户邮箱
+    :param mobile: 用户手机号码
+    :param password: 用户密码（加密格式）
+    :param affiliation_id: 所属关系 ID
+    :param avatar: 用户头像 URL（可选）
+    :param role_id: 用户角色 ID（可选）
+    :return: 创建的用户响应对象
     """
-
     username = utils.pinyin(name)
     password = hash_password(decrypt_password(password))
 
@@ -119,7 +124,7 @@ async def create_user(
     UserTable,
     func_key="user_id",
     model_key="id",
-    mobile=UniqueDetails(message="手机已号存在"),
+    mobile=UniqueDetails(message="手机号码已存在"),
     email=UniqueDetails(message="邮件已存在"),
 )
 async def update_user(
@@ -136,15 +141,17 @@ async def update_user(
     """
     修改用户信息
 
-    :param user_id: 用户ID
+    该函数更新用户的相关信息，包括姓名、邮箱、手机号码等，并保存到数据库中。
+
+    :param user_id: 用户 ID
     :param name: 用户名称
     :param email: 用户邮箱
-    :param mobile: 手机号
-    :param affiliation_id: 所属关系ID
-    :param status: 在职状态
-    :param avatar: 头像
-    :param role_id: 角色ID
-    :return:
+    :param mobile: 用户手机号码
+    :param affiliation_id: 所属关系 ID
+    :param status: 用户状态（默认为在职）
+    :param avatar: 用户头像 URL（可选）
+    :param role_id: 用户角色 ID（可选）
+    :return: 更新后的用户响应对象
     """
     user: UserTable = await select_one(select(UserTable).where(UserTable.id == user_id))
     user.name = name
@@ -162,9 +169,14 @@ async def update_user(
 async def authenticate_user(username: str, password: str) -> UserResponse:
     """
     验证用户密码
-    :param username: 用户名
+
+    该函数验证给定的用户名和密码是否匹配。如果用户名不存在或密码错误，则抛出适当的异常。
+
+    :param username: 用户名（通常是邮箱）
     :param password: 密码
-    :return:
+    :return: 用户响应对象
+    :raises InvalidUsername: 用户名不存在时抛出
+    :raises WrongPassword: 密码错误时抛出
     """
     user: UserResponse = await select_one(select(UserTable).where(UserTable.email == username))
 
@@ -180,12 +192,12 @@ async def authenticate_user(username: str, password: str) -> UserResponse:
 async def get_current_user(user_data: Annotated[JWTData, Depends(parse_jwt_user_data)]) -> UserResponse:
     """
     获取当前用户信息
-    示例: user: Annotated[UserResponse, Depends(get_current_user)]
 
-    :param user_data: 传递的 Token
-    :return:
+    该函数根据 JWT 数据中的用户 ID 从数据库中获取用户信息。
+
+    :param user_data: 由 JWT 解析函数提供的用户数据
+    :return: 当前用户的响应对象
     """
-
     return await select_one(select(UserTable).where(UserTable.id == user_data.userId))
 
 
@@ -193,10 +205,13 @@ async def update_password(*, user_id: int, old_password: str, new_password: str)
     """
     更新用户的密码信息
 
-    :param user_id: 用户ID
+    该函数验证旧密码是否正确，并将用户的密码更新为新的密码。密码进行解密和哈希处理。
+
+    :param user_id: 用户 ID
     :param old_password: 旧密码
-    :param new_password: 新的密码
-    :return:
+    :param new_password: 新密码
+    :return: None
+    :raises WrongPassword: 旧密码不正确时抛出
     """
     old_password = decrypt_password(old_password)
     new_password = hash_password(decrypt_password(new_password))
@@ -212,12 +227,14 @@ async def update_password(*, user_id: int, old_password: str, new_password: str)
 
 async def edit_affiliation(*, affiliation_id: int, name: str, node_id: int) -> AffiliationInfoResponse:
     """
-    创建/更新 一个所属关系
+    创建/更新一个所属关系
 
-    :param affiliation_id: 所属关系ID 如何为真则视为修改
+    该函数根据 `affiliation_id` 来判断是创建新的所属关系还是更新现有的所属关系。
+
+    :param affiliation_id: 所属关系 ID（如果提供，则视为更新）
     :param name: 所属关系名称
-    :param node_id: 节点ID
-    :return:
+    :param node_id: 节点 ID
+    :return: 所属关系的响应对象
     """
     if affiliation_id:
         affiliation: AffiliationInfoResponse = await select_one(
@@ -234,8 +251,10 @@ async def delete_affiliation(*, affiliation_id) -> AffiliationInfoResponse:
     """
     删除一个所属关系
 
-    :param affiliation_id: 所属关系ID
-    :return:
+    该函数根据 `affiliation_id` 删除指定的所属关系。
+
+    :param affiliation_id: 所属关系 ID
+    :return: 删除的所属关系的响应对象
     """
     return await delete_one(select(AffiliationTable).where(AffiliationTable.id == affiliation_id))
 
@@ -244,9 +263,11 @@ async def get_affiliation_tree(*, node_id: int, keyword: str = "") -> list[Affil
     """
     获取当前的所属关系树
 
-    :param node_id: 节点ID
-    :param keyword: 关键字查询
-    :return:
+    递归地获取从指定节点开始的所有所属关系，并根据 `keyword` 进行关键字匹配。
+
+    :param node_id: 节点 ID
+    :param keyword: 关键字查询（可选）
+    :return: 所有所属关系的列表
     """
     affiliation_dict_list: list[AffiliationListResponse] = []
 
@@ -266,13 +287,15 @@ async def get_affiliation_tree(*, node_id: int, keyword: str = "") -> list[Affil
 
 async def edit_menu(*, menu_id: int, name: str, identifier: str, node_id: int) -> MenuInfoResponse:
     """
-    创建/更新 一个权限菜单
+    创建/更新一个权限菜单
 
-    :param menu_id: 权限菜单ID 如何为真则视为修改
+    该函数根据 `menu_id` 判断是创建新的权限菜单还是更新现有的菜单。
+
+    :param menu_id: 权限菜单 ID（如果提供，则视为更新）
     :param name: 菜单名称
     :param identifier: 菜单标识符
-    :param node_id: 节点ID
-    :return:
+    :param node_id: 节点 ID
+    :return: 权限菜单的响应对象
     """
     # 修改
     if menu_id:
@@ -289,8 +312,10 @@ async def delete_menu(*, menu_id: int) -> MenuInfoResponse:
     """
     删除一个权限菜单
 
-    :param menu_id: 权限菜单ID
-    :return:
+    该函数根据 `menu_id` 删除指定的权限菜单。
+
+    :param menu_id: 权限菜单 ID
+    :return: 删除的权限菜单的响应对象
     """
     return await delete_one(select(MenuTable).where(MenuTable.id == menu_id))
 
@@ -299,9 +324,11 @@ async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResp
     """
     递归遍历所有子菜单信息
 
-    :param node_id: 开始节点
-    :param keyword: 关键字匹配
-    :return:
+    该函数递归地获取从指定节点开始的所有子菜单，并根据 `keyword` 进行关键字匹配。
+
+    :param node_id: 开始节点 ID
+    :param keyword: 关键字匹配（可选）
+    :return: 所有子菜单的列表
     """
     menu_dict_list: list[MenuListResponse] = []
 
@@ -322,15 +349,16 @@ async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResp
 
 async def edit_role(*, role_id: int, name: str, identifier: str, identifier_list: list[str]) -> RoleInfoResponse:
     """
-    创建/修改 一个角色信息
+    创建/修改一个角色信息
 
-    :param role_id: 角色ID
+    该函数根据 `role_id` 判断是创建新的角色还是更新现有角色的信息。
+
+    :param role_id: 角色 ID（如果提供，则视为更新）
     :param name: 角色名称
     :param identifier: 角色标识符
-    :param identifier_list: 此角色绑定的权限菜单
-    :return:
+    :param identifier_list: 此角色绑定的权限菜单标识符列表
+    :return: 角色的响应对象
     """
-
     if role_id:
         role: RoleInfoResponse = await select_one(select(RoleTable).where(RoleTable.id == role_id))
         role.name = name
@@ -345,12 +373,13 @@ async def get_role_list(page: int, size: int, *, keyword: str = "") -> list[Role
     """
     获取角色信息列表
 
-    :param page: 当前页
-    :param size: 当前页大小
-    :param keyword: 关键字查询, name or identifier
-    :return:
-    """
+    该函数分页获取角色信息，并根据 `keyword` 进行关键字匹配。
 
+    :param page: 当前页
+    :param size: 每页的大小
+    :param keyword: 关键字查询（可选，匹配角色名称或标识符）
+    :return: 角色信息的列表
+    """
     return await fetch_page(
         select(RoleTable).where(
             or_(like(field=RoleTable.name, keyword=keyword), like(field=RoleTable.identifier, keyword=keyword))
@@ -364,8 +393,9 @@ async def delete_role(*, role_id: int) -> RoleInfoResponse:
     """
     删除一个角色信息
 
-    :param role_id: 角色信息ID
-    :return:
-    """
+    该函数根据 `role_id` 删除指定的角色信息。
 
+    :param role_id: 角色 ID
+    :return: 删除的角色信息的响应对象
+    """
     return await delete_one(select(RoleTable).where(RoleTable.id == role_id))

@@ -45,3 +45,19 @@ rm *args:
 # 删除当前所有的镜像
 rmi:
   docker rmi $(docker images -q)
+
+# 将 Docker 中的数据库迁移至最新版本
+migrate:
+  docker compose exec app migrate
+
+# 将 Docker 中的数据库回滚到指定版本
+downgrade *args:
+  docker compose exec app downgrade {{args}}
+
+# 将 Docker 中的代码使用 ruff 格式化
+ruff:
+  docker compose exec app format
+
+# 使用 mypy 进行代码静态检查
+mypy:
+  docker compose exec app mypy /src
