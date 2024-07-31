@@ -40,8 +40,6 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
     :return: AsyncGenerator[AsyncClient, None]: 一个异步生成器，生成 `AsyncClient` 实例。
     """
 
-    # 使用 httpx 官方推荐的方式传递 APP时会出现类型提示错误
-    # noinspection PyTypeChecker
-    transport = ASGITransport(app=app)
+    transport = ASGITransport(app=app)  # type: ignore
     async with AsyncClient(transport=transport, base_url="http://localhost:8006/api/v1/client") as client:
         yield client

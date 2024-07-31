@@ -29,7 +29,7 @@ def generate_rsa_key_pair() -> Tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
     return private_key, public_key
 
 
-def serialize_key(key: rsa.RSAPublicKey | rsa.RSAPrivateKey, is_private: bool = True) -> bytes:
+def serialize_key(key: rsa.RSAPublicKey | rsa.RSAPrivateKey) -> bytes:
     """
     将 RSA 密钥序列化为 PEM 格式
 
@@ -37,13 +37,11 @@ def serialize_key(key: rsa.RSAPublicKey | rsa.RSAPrivateKey, is_private: bool = 
 
     :param key: 要序列化的 RSA 密钥对象
         - 可以是 RSA 私钥对象或公钥对象
-    :param is_private: 是否序列化为私钥格式，默认为 True
-        - 如果为 True，则将密钥序列化为私钥格式
-        - 如果为 False，则将密钥序列化为公钥格式
+
     :return: 序列化后的 PEM 格式密钥
         - 以字节串形式返回 PEM 编码的密钥
     """
-    if is_private:
+    if isinstance(key, rsa.RSAPrivateKey):
         # 序列化为 PEM 格式的私钥
         return key.private_bytes(
             encoding=serialization.Encoding.PEM,
@@ -53,7 +51,8 @@ def serialize_key(key: rsa.RSAPublicKey | rsa.RSAPrivateKey, is_private: bool = 
     else:
         # 序列化为 PEM 格式的公钥
         return key.public_bytes(
-            encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
 
 

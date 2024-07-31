@@ -3,7 +3,7 @@
 # _description: Redis 缓存数据库
 
 from contextlib import asynccontextmanager
-from typing import AsyncContextManager
+from typing import AsyncIterator
 
 import redis.asyncio as aioredis
 from fastapi import FastAPI
@@ -17,7 +17,7 @@ redis_client: Redis
 
 
 @asynccontextmanager
-async def lifespan(_application: FastAPI) -> AsyncContextManager:
+async def lifespan(_application: FastAPI) -> AsyncIterator[None]:
     """
     FastAPI 启动时挂载 Redis 停止时释放 Redis
 
@@ -29,12 +29,12 @@ async def lifespan(_application: FastAPI) -> AsyncContextManager:
     global redis_client
     redis_client = aioredis.Redis(connection_pool=pool)
 
-    yield
+    try:
+        yield
 
-    if settings.ENVIRONMENT.is_testing:
-        return
-    # 释放
-    await pool.disconnect()
+    finally:
+        if not settings.ENVIRONMENT.is_testing:
+            await pool.disconnect()
 
 
 async def set_redis_key(redis_data: RedisData, *, is_transaction: bool = False) -> None:

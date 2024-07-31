@@ -138,3 +138,6 @@ node_modules/
 backup.dump
 backup.dump.gz
 .vscode
+
+# debug file
+debug*.py

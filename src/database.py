@@ -37,7 +37,11 @@ class UniqueDetails(BaseModel):
 
 
 def unique_check(
-    table: Type[SQLModel], *, func_key: str = None, model_key: str = None, **unique: UniqueDetails | str
+    table: Type[SQLModel],
+    *,
+    func_key: str | None = None,
+    model_key: str | None = None,
+    **unique: UniqueDetails | str,
 ) -> Callable[..., Any]:
     """
     检查数据在数据表中是否存在相同的数据, 此装饰器会在 FastAPI 校验参数之前执行...
@@ -62,11 +66,11 @@ def unique_check(
     """
 
     # 如果 response_key 不为真则取 request_key
-    model_key = model_key or func_key
+    model_key = str(model_key or func_key)
 
-    def decorator(func: Callable[..., Any]):
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
-        async def wrapper(*args, **kwargs):
+        async def wrapper(*args, **kwargs) -> Callable[..., Any]:  # type: ignore
             """回调函数的入参信息"""
 
             # 执行唯一性检查
@@ -104,12 +108,12 @@ def catch_database_exceptions(func: Callable[..., Any]) -> Callable[..., Any]:
     :return:
     """
 
-    async def wrapper(*args, **kwargs):
+    async def wrapper(*args, **kwargs) -> Callable[..., Any]:  # type: ignore
         try:
             result = await func(*args, **kwargs)
             return result
         except DatabaseError as error:
-            error.orig = str(error.orig)
+            error.orig = str(error.orig)  # type: ignore
             raise DatabaseConflictError(jsonable_encoder(error))
 
     return wrapper
@@ -154,8 +158,7 @@ async def select_one(sql: Select) -> T | None:
         if not data:
             raise DatabaseNotFound()
 
-        # noinspection PyTypeChecker
-        return data
+        return data  # type: ignore
 
 
 @catch_database_exceptions
@@ -211,7 +214,7 @@ async def insert_one(table: Type[SQLModel], model: SQLModel) -> T:
         data = table.model_validate(model)
         session.add(data)
         await session.commit()
-        return data
+        return data  # type: ignore
 
 
 @catch_database_exceptions
@@ -229,7 +232,7 @@ async def update_one(table: SQLModel) -> T:
         session.add(table)
         await session.commit()
         await session.refresh(table)
-        return table
+        return table  # type: ignore
 
 
 @catch_database_exceptions
@@ -249,5 +252,4 @@ async def delete_one(sql: Select) -> T:
         await session.delete(data)
         await session.commit()
 
-        # noinspection PyTypeChecker
-        return data
+        return data  # type: ignore

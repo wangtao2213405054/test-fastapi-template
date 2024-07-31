@@ -2,6 +2,7 @@
 # _date: 2023/12/11 23:00
 # _description: 认证相关数据库响应模型
 
+from pydantic import Field as PydanticField
 from sqlmodel import JSON, Column, Field, Relationship
 
 from src.models import BaseModel
@@ -10,13 +11,15 @@ from src.models import BaseModel
 class GeneralBase(BaseModel):
     """通用数据模型"""
 
-    name: str = Field(index=True, description="名称")  # 名称
+    name: str = Field(index=True, description="名称", schema_extra={"examples": ["name"]})  # 名称
 
 
 class IdentifierBase(GeneralBase):
     """带有标识符的模型"""
 
-    identifier: str = Field(index=True, unique=True, nullable=False, description="标识符")  # 标识符
+    identifier: str = Field(
+        index=True, unique=True, nullable=False, description="标识符", schema_extra={"examples": ["identifier"]}
+    )  # 标识符
 
 
 class RoleBase(IdentifierBase):
@@ -71,7 +74,20 @@ class MenuListResponse(MenuBase):
     """菜单列表响应体"""
 
     id: int
-    children: list[MenuInfoResponse]
+    # 使用了 Pydantic Field examples 将 children 添加到 OpenAPI 文档中
+    children: list["MenuListResponse"] = PydanticField(
+        examples=[
+            [
+                {
+                    "id": 2,
+                    "name": "name",
+                    "identifier": "identifier",
+                    "nodeId": 1,
+                    "children": [],
+                }
+            ]
+        ]
+    )
 
 
 class AffiliationBase(GeneralBase):
@@ -103,7 +119,18 @@ class AffiliationListResponse(AffiliationBase):
     """归属信息列表响应"""
 
     id: int
-    children: list[AffiliationInfoResponse]
+    children: list["AffiliationListResponse"] = PydanticField(
+        examples=[
+            [
+                {
+                    "id": 2,
+                    "name": "name",
+                    "nodeId": 1,
+                    "children": [],
+                }
+            ]
+        ]
+    )
 
 
 class UserBase(BaseModel):
@@ -115,6 +142,7 @@ class UserBase(BaseModel):
     mobile: str = Field(index=True, nullable=False, unique=True, description="手机号")  # 手机号 不可重复
     avatarUrl: str | None = Field(None, description="头像")  # 头像
     status: bool = Field(True, description="用户在职状态")  # 用户在职状态
+    isAdmin: bool = Field(False, description="是否为超管")
     roleId: int | None = Field(None, foreign_key="test_role.id", description="角色ID")  # 角色ID
     affiliationId: int = Field(default=None, foreign_key="test_affiliation.id", description="所属关系ID")  # 部门
 

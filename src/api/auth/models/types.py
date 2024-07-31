@@ -5,7 +5,11 @@
 from fastapi import Body
 from pydantic import EmailStr, Field, HttpUrl, field_validator
 
-from src.models.types import CustomModel, GeneralKeywordPageRequestModel, GeneralKeywordRequestModel
+from src.models.types import (
+    CustomModel,
+    GeneralKeywordPageRequestModel,
+    GeneralKeywordRequestModel,
+)
 from src.utils import validate
 
 
@@ -13,6 +17,7 @@ class JWTData(CustomModel):
     """Token解析后的数据"""
 
     userId: int = Field(alias="sub")
+    isAdmin: bool = False
 
 
 class AuthLoginRequest(CustomModel):

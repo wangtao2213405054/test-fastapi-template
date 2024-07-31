@@ -84,7 +84,8 @@ async def active_exception_handler(_request: Request, exc: DetailedHTTPException
 async def validation_handler(_request: Request, exc: RequestValidationError) -> JSONResponse:
     """
     对入参错误异常做了转发, 当前响应码为 200, 并将错误信息返回至data 中
-    jsonable_encoder 会将数据类型转换成 JSON兼容类型, exc 的 ctx 可能会出现对象, 我们需要调用这个方法来兼容
+    jsonable_encoder 会将数据类型转换成 JSON兼容类型
+    exc 的 ctx 可能会出现对象, 我们需要调用这个方法来兼容
 
     :param _request: FastApi <Request> 对象
     :param exc: <RequestValidationError>类
@@ -105,9 +106,8 @@ async def validation_handler(_request: Request, exc: RequestValidationError) -> 
 
 
 # 添加 CORS（跨源资源共享）中间件 忽略 PyCharm 的警告信息, 由于他们是正确的
-# noinspection PyTypeChecker
 app.add_middleware(
-    CORSMiddleware,
+    CORSMiddleware,  # type: ignore
     allow_origins=settings.CORS_ORIGINS,
     allow_origin_regex=settings.CORS_ORIGINS_REGEX,
     allow_credentials=True,
@@ -132,7 +132,12 @@ async def http_middleware(
 
     # request
     body = await request.body()
-    logging.info(f'Request Info: {request.client.host}:{request.client.port} - "{request.method} {request.url.path}"')
+
+    client = request.client
+
+    host = client.host if client else "暂无主机信息"
+    port = client.port if client else "暂无端口信息"
+    logging.info(f'Request Info: {host}:{port} - "{request.method} {request.url.path}"')
     logging.debug(f"Request Headers: {request.headers.items()}")
     logging.info(f"Request Body: {''.join(body.decode('utf-8').split())}")
 
@@ -142,7 +147,11 @@ async def http_middleware(
     response_body = [chunk async for chunk in response.body_iterator]
     response.body_iterator = iterate_in_threadpool(iter(response_body))
 
-    logging.info(f"Response Body: {response_body[0].decode('utf-8')}")
+    first_chunk = response_body[0]
+    if isinstance(first_chunk, bytes):
+        first_chunk = first_chunk.decode("utf-8")
+
+    logging.info(f"Response Body: {first_chunk}")
     logging.info(f"Response Time: {round((time.time() - start_time) * 1000, 3)} ms")
 
     return response

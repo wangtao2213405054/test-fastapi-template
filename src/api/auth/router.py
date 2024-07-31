@@ -53,13 +53,17 @@ async def user_edit(body: CreateUserRequest) -> ResponseModel[UserResponse]:
     """
     创建用户接口
 
-    创建一个新的用户。需要提供用户的名称、邮箱、手机号码、密码、所属关系 ID 和（可选的）头像 URL 和角色 ID。
+    创建一个新的用户。需要提供用户的名称、邮箱、手机号码、密码、所属关系 ID 和（可选的）头像 URL 和角色 ID。\f
 
     :param body: 包含用户信息的 <CreateUserRequest> 对象
     :return: 包含新创建用户信息的 <ResponseModel> 对象
     """
     user = await create_user(
-        name=body.name, email=body.email, mobile=body.mobile, password=body.password, affiliation_id=body.affiliationId
+        name=body.name,
+        email=body.email,
+        mobile=body.mobile,
+        password=body.password,
+        affiliation_id=body.affiliationId,
     )
     return ResponseModel(data=user)
 
@@ -69,7 +73,7 @@ async def user_update(body: UpdateUserInfoRequest) -> ResponseModel[UserResponse
     """
     修改用户信息接口
 
-    更新现有用户的信息。可以修改用户的名称、邮箱、手机号码、状态、所属关系 ID、头像 URL 和角色 ID。
+    更新现有用户的信息。可以修改用户的名称、邮箱、手机号码、状态、所属关系 ID、头像 URL 和角色 ID。\f
 
     :param body: 包含用户信息的 <UpdateUserInfoRequest> 对象
     :return: 包含更新后用户信息的 <ResponseModel> 对象
@@ -92,7 +96,7 @@ async def user_update_password(body: UpdatePasswordRequest) -> ResponseModel:
     """
     修改用户密码接口
 
-    更新用户的密码。需要提供用户 ID、旧密码和新密码。
+    更新用户的密码。需要提供用户 ID、旧密码和新密码。\f
 
     :param body: 包含密码信息的 <UpdatePasswordRequest> 对象
     :return: 无内容的 <ResponseModel> 对象
@@ -102,11 +106,13 @@ async def user_update_password(body: UpdatePasswordRequest) -> ResponseModel:
 
 
 @router.get("/user/info")
-async def user_info(user: Annotated[UserResponse, Depends(get_current_user)]) -> ResponseModel[UserResponse]:
+async def user_info(
+    user: Annotated[UserResponse, Depends(get_current_user)],
+) -> ResponseModel[UserResponse]:
     """
     获取当前用户信息接口
 
-    获取当前登录用户的信息。通过 JWT 获取用户数据，并返回用户信息。
+    获取当前登录用户的信息。通过 JWT 获取用户数据，并返回用户信息。\f
 
     :param user: 当前用户信息，由 JWT 解析函数提供
     :return: 包含用户信息的 <ResponseModel> 对象
@@ -119,7 +125,7 @@ async def menu_list(body: AuthGetMenuRequest) -> ResponseModel[list[MenuListResp
     """
     获取权限菜单列表接口
 
-    获取指定节点的权限菜单列表，并可以通过关键字进行过滤。
+    获取指定节点的权限菜单列表，并可以通过关键字进行过滤。\f
 
     :param body: 包含节点 ID 和关键字的 <AuthGetMenuRequest> 对象
     :return: 包含菜单列表的 <ResponseModel> 对象
@@ -133,7 +139,7 @@ async def menu_edit(body: AuthEditMenuRequest) -> ResponseModel[MenuInfoResponse
     """
     添加或更新权限菜单接口
 
-    根据提供的菜单 ID 更新菜单信息，如果 ID 不存在则创建新的菜单。
+    根据提供的菜单 ID 更新菜单信息，如果 ID 不存在则创建新的菜单。\f
 
     :param body: 包含菜单信息的 <AuthEditMenuRequest> 对象
     :return: 包含更新后菜单信息的 <ResponseModel> 对象
@@ -147,7 +153,7 @@ async def menu_delete(body: DeleteRequestModel) -> ResponseModel[MenuInfoRespons
     """
     删除权限菜单接口
 
-    根据菜单 ID 删除指定的权限菜单。
+    根据菜单 ID 删除指定的权限菜单。\f
 
     :param body: 包含菜单 ID 的 <DeleteRequestModel> 对象
     :return: 包含被删除菜单信息的 <ResponseModel> 对象
@@ -161,23 +167,28 @@ async def role_edit(body: AuthEditRoleRequest) -> ResponseModel:
     """
     添加或更新角色信息接口
 
-    根据提供的角色 ID 更新角色信息，如果 ID 不存在则创建新的角色。
+    根据提供的角色 ID 更新角色信息，如果 ID 不存在则创建新的角色。\f
 
     :param body: 包含角色信息的 <AuthEditRoleRequest> 对象
     :return: 无内容的 <ResponseModel> 对象
     """
     await edit_role(
-        role_id=body.id, name=body.name, identifier=body.identifier, identifier_list=body.menuIdentifierList
+        role_id=body.id,
+        name=body.name,
+        identifier=body.identifier,
+        identifier_list=body.menuIdentifierList,
     )
     return ResponseModel()
 
 
 @router.post("/role/list")
-async def role_list(body: AuthGetRoleListRequest) -> ResponseModel[list[RoleInfoResponse]]:
+async def role_list(
+    body: AuthGetRoleListRequest,
+) -> ResponseModel[list[RoleInfoResponse]]:
     """
     获取角色列表接口
 
-    获取角色的分页列表，并可以通过关键字进行过滤。
+    获取角色的分页列表，并可以通过关键字进行过滤。\f
 
     :param body: 包含分页和关键字信息的 <AuthGetRoleListRequest> 对象
     :return: 包含角色列表的 <ResponseModel> 对象
@@ -191,7 +202,7 @@ async def role_delete(body: DeleteRequestModel) -> ResponseModel[RoleInfoRespons
     """
     删除角色信息接口
 
-    根据角色 ID 删除指定的角色信息。
+    根据角色 ID 删除指定的角色信息。\f
 
     :param body: 包含角色 ID 的 <DeleteRequestModel> 对象
     :return: 包含被删除角色信息的 <ResponseModel> 对象
@@ -201,11 +212,13 @@ async def role_delete(body: DeleteRequestModel) -> ResponseModel[RoleInfoRespons
 
 
 @router.put("/affiliation/edit")
-async def affiliation_edit(body: AuthEditAffiliationRequest) -> ResponseModel[AffiliationInfoResponse]:
+async def affiliation_edit(
+    body: AuthEditAffiliationRequest,
+) -> ResponseModel[AffiliationInfoResponse]:
     """
     添加或更新所属关系信息接口
 
-    根据提供的所属关系 ID 更新所属关系信息，如果 ID 不存在则创建新的所属关系。
+    根据提供的所属关系 ID 更新所属关系信息，如果 ID 不存在则创建新的所属关系。\f
 
     :param body: 包含所属关系信息的 <AuthEditAffiliationRequest> 对象
     :return: 包含更新后所属关系信息的 <ResponseModel> 对象
@@ -215,11 +228,13 @@ async def affiliation_edit(body: AuthEditAffiliationRequest) -> ResponseModel[Af
 
 
 @router.post("/affiliation/list")
-async def affiliation_list(body: AuthGetAffiliationListRequest) -> ResponseModel[list[AffiliationListResponse]]:
+async def affiliation_list(
+    body: AuthGetAffiliationListRequest,
+) -> ResponseModel[list[AffiliationListResponse]]:
     """
     获取所属关系列表接口
 
-    获取指定节点的所有所属关系，并可以通过关键字进行过滤。
+    获取指定节点的所有所属关系，并可以通过关键字进行过滤。\f
 
     :param body: 包含节点 ID 和关键字的 <AuthGetAffiliationListRequest> 对象
     :return: 包含所属关系列表的 <ResponseModel> 对象
@@ -229,11 +244,13 @@ async def affiliation_list(body: AuthGetAffiliationListRequest) -> ResponseModel
 
 
 @router.delete("/affiliation/delete")
-async def affiliation_delete(body: DeleteRequestModel) -> ResponseModel[AffiliationInfoResponse]:
+async def affiliation_delete(
+    body: DeleteRequestModel,
+) -> ResponseModel[AffiliationInfoResponse]:
     """
     删除所属关系接口
 
-    根据所属关系 ID 删除指定的所属关系。
+    根据所属关系 ID 删除指定的所属关系。\f
 
     :param body: 包含所属关系 ID 的 <DeleteRequestModel> 对象
     :return: 包含被删除所属关系信息的 <ResponseModel> 对象
@@ -243,7 +260,7 @@ async def affiliation_delete(body: DeleteRequestModel) -> ResponseModel[Affiliat
 
 
 @socket.event
-def connect(sid: str, environ: dict[str, Any]):
+def connect(sid: str, environ: dict[str, Any]) -> None:
     """
     socketio 连接事件
 
@@ -260,7 +277,7 @@ def connect(sid: str, environ: dict[str, Any]):
 
 
 @socket.event
-def disconnect(sid: str):
+def disconnect(sid: str) -> None:
     """
     socketio 断连事件
 

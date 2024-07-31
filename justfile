@@ -54,10 +54,18 @@ migrate:
 downgrade *args:
   docker compose exec app downgrade {{args}}
 
+# 生成数据库同步脚本
+makemigrations *args:
+  docker compose exec app makemigrations {{args}}
+
 # 将 Docker 中的代码使用 ruff 格式化
 ruff:
   docker compose exec app format
 
 # 使用 mypy 进行代码静态检查
 mypy:
-  docker compose exec app mypy /src
+  docker compose exec app mypy /src/src
+
+# 运行单元测试
+pytest:
+  docker compose exec app pytest

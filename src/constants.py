@@ -4,6 +4,8 @@
 
 from enum import Enum
 
+from .exceptions import PermissionDenied
+
 DB_NAMING_CONVENTION = {
     "ix": "%(column_0_label)s_idx",
     "uq": "%(table_name)s_%(column_0_name)s_key",
@@ -30,3 +32,14 @@ class Environment(str, Enum):
     @property
     def is_deployed(self) -> bool:
         return self in (self.STAGING, self.PRODUCTION)
+
+
+def debug(env: Environment) -> None:
+    """
+    判断当前环境是否为 DEBUG, 如果不为真则抛出异常
+
+    :return:
+    """
+
+    if not env.is_debug:
+        raise PermissionDenied()

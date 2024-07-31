@@ -1,5 +1,12 @@
 from .database import DatabaseConflictError, DatabaseNotFound, DatabaseUniqueError
-from .http import BadData, BadRequest, DetailedHTTPException, NotAuthenticated, NotFound, PermissionDenied
+from .http import (
+    BadData,
+    BadRequest,
+    DetailedHTTPException,
+    NotAuthenticated,
+    NotFound,
+    PermissionDenied,
+)
 
 __all__ = [
     "DatabaseUniqueError",

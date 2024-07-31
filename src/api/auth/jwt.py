@@ -28,7 +28,11 @@ def create_access_token(
     :param expires_delta: 令牌的有效期，默认为配置中指定的有效期。
     :return: 生成的 JWT 访问令牌字符串。
     """
-    jwt_data = dict(sub=str(user.get("id")), exp=datetime.datetime.now(datetime.UTC) + expires_delta)
+    jwt_data = dict(
+        sub=str(user.get("id")),
+        isAdmin=user.get("isAdmin"),
+        exp=datetime.datetime.now(datetime.UTC) + expires_delta,
+    )
     return jwt.encode(jwt_data, auth_config.ACCESS_TOKEN_KEY, algorithm=auth_config.JWT_ALG)
 
 
@@ -45,12 +49,16 @@ def create_refresh_token(
     :return: 生成的 JWT 刷新令牌字符串。
     """
     jwt_data = dict(
-        sub=str(user.get("id")), exp=datetime.datetime.now(datetime.UTC) + expires_delta, uuid=str(uuid.uuid4())
+        sub=str(user.get("id")),
+        exp=datetime.datetime.now(datetime.UTC) + expires_delta,
+        uuid=str(uuid.uuid4()),
     )
     return jwt.encode(jwt_data, auth_config.REFRESH_TOKEN_KEY, algorithm=auth_config.JWT_ALG)
 
 
-async def parse_jwt_user_data_optional(token: Annotated[str, Depends(oauth2_scheme)]) -> JWTData | None:
+async def parse_jwt_user_data_optional(
+    token: Annotated[str, Depends(oauth2_scheme)],
+) -> JWTData | None:
     """
     解析 JWT 访问令牌并返回解码后的用户数据。
 
@@ -69,7 +77,9 @@ async def parse_jwt_user_data_optional(token: Annotated[str, Depends(oauth2_sche
     return JWTData(**payload)
 
 
-async def parse_jwt_user_data(token: Annotated[JWTData, Depends(parse_jwt_user_data_optional)]) -> JWTData:
+async def parse_jwt_user_data(
+    token: Annotated[JWTData, Depends(parse_jwt_user_data_optional)],
+) -> JWTData:
     """
     验证并返回解码后的 JWT 用户数据。
 
@@ -83,7 +93,9 @@ async def parse_jwt_user_data(token: Annotated[JWTData, Depends(parse_jwt_user_d
     return token
 
 
-async def parse_jwt_admin_data(token: Annotated[JWTData, Depends(parse_jwt_user_data)]) -> JWTData:
+async def parse_jwt_admin_data(
+    token: Annotated[JWTData, Depends(parse_jwt_user_data)],
+) -> JWTData:
     """
     验证并返回解码后的 JWT 管理员数据。
 
@@ -91,13 +103,15 @@ async def parse_jwt_admin_data(token: Annotated[JWTData, Depends(parse_jwt_user_
     :return: 解码后的 JWT 数据对象。
     :raises AuthorizationFailed: 当用户不是管理员或权限不足时。
     """
-    if not token.is_admin:
+    if not token.isAdmin:
         raise AuthorizationFailed()
 
     return token
 
 
-async def validate_admin_access(token: Annotated[JWTData, Depends(parse_jwt_user_data_optional)]) -> None:
+async def validate_admin_access(
+    token: Annotated[JWTData, Depends(parse_jwt_user_data_optional)],
+) -> None:
     """
     验证管理员访问权限。
 
@@ -105,7 +119,7 @@ async def validate_admin_access(token: Annotated[JWTData, Depends(parse_jwt_user
     :return: 无返回值。如果验证失败，会抛出 AuthorizationFailed 异常。
     :raises AuthorizationFailed: 当用户不是管理员或权限不足时。
     """
-    if token and token.is_admin:
+    if token and token.isAdmin:
         return
 
     raise AuthorizationFailed()

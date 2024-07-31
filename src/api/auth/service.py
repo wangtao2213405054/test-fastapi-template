@@ -22,8 +22,13 @@ from src.database import (
 )
 from src.utils import validate
 
-from .config import auth_config
-from .exceptions import InvalidPassword, InvalidUsername, StandardsPassword, WrongPassword
+from .config import PRIVATE_KEY, PUBLIC_KEY
+from .exceptions import (
+    InvalidPassword,
+    InvalidUsername,
+    StandardsPassword,
+    WrongPassword,
+)
 from .jwt import parse_jwt_user_data
 from .models.models import (
     AffiliationCreate,
@@ -53,7 +58,7 @@ def get_public_key() -> str:
 
     :return: 公钥的 PEM 格式字符串
     """
-    public_key_pem = serialize_key(auth_config.PUBLIC_KEY, is_private=False)
+    public_key_pem = serialize_key(PUBLIC_KEY)
     return public_key_pem.decode("utf-8")
 
 
@@ -70,7 +75,7 @@ def decrypt_password(password: str) -> str:
     :raises StandardsPassword: 密码不符合标准时抛出
     """
     try:
-        rsa_password = decrypt_message(auth_config.PRIVATE_KEY, password)
+        rsa_password = decrypt_message(PRIVATE_KEY, password)
     except Exception as e:
         logging.error(e)
         raise InvalidPassword()
@@ -82,9 +87,20 @@ def decrypt_password(password: str) -> str:
     return rsa_password
 
 
-@unique_check(UserTable, mobile=UniqueDetails(message="手机号码已存在"), email=UniqueDetails(message="邮件已存在"))
+@unique_check(
+    UserTable,
+    mobile=UniqueDetails(message="手机号码已存在"),
+    email=UniqueDetails(message="邮件已存在"),
+)
 async def create_user(
-    *, name: str, email: str, mobile: str, password: str, affiliation_id: int, avatar: str = None, role_id: int = None
+    *,
+    name: str,
+    email: str,
+    mobile: str,
+    password: str,
+    affiliation_id: int,
+    avatar: str | None = None,
+    role_id: int | None = None,
 ) -> UserResponse:
     """
     创建一个新的用户
@@ -101,7 +117,7 @@ async def create_user(
     :return: 创建的用户响应对象
     """
     username = utils.pinyin(name)
-    password = hash_password(decrypt_password(password))
+    password_hash: bytes = hash_password(decrypt_password(password))
 
     user = await insert_one(
         UserTable,
@@ -110,7 +126,7 @@ async def create_user(
             username=username,
             email=email,
             mobile=mobile,
-            password=password,
+            password=password_hash,
             avatarUrl=avatar,
             roleId=role_id,
             affiliationId=affiliation_id,
@@ -135,8 +151,8 @@ async def update_user(
     mobile: str,
     affiliation_id: int,
     status: bool = True,
-    avatar: str = None,
-    role_id: int = None,
+    avatar: str | None = None,
+    role_id: int | None = None,
 ) -> UserResponse:
     """
     修改用户信息
@@ -166,7 +182,7 @@ async def update_user(
     return await update_one(user)
 
 
-async def authenticate_user(username: str, password: str) -> UserResponse:
+async def authenticate_user(username: str, password: str) -> UserTable:
     """
     验证用户密码
 
@@ -178,7 +194,7 @@ async def authenticate_user(username: str, password: str) -> UserResponse:
     :raises InvalidUsername: 用户名不存在时抛出
     :raises WrongPassword: 密码错误时抛出
     """
-    user: UserResponse = await select_one(select(UserTable).where(UserTable.email == username))
+    user: UserTable = await select_one(select(UserTable).where(UserTable.email == username))
 
     if not user:
         raise InvalidUsername()
@@ -189,7 +205,9 @@ async def authenticate_user(username: str, password: str) -> UserResponse:
     return user
 
 
-async def get_current_user(user_data: Annotated[JWTData, Depends(parse_jwt_user_data)]) -> UserResponse:
+async def get_current_user(
+    user_data: Annotated[JWTData, Depends(parse_jwt_user_data)],
+) -> UserResponse:
     """
     获取当前用户信息
 
@@ -214,14 +232,14 @@ async def update_password(*, user_id: int, old_password: str, new_password: str)
     :raises WrongPassword: 旧密码不正确时抛出
     """
     old_password = decrypt_password(old_password)
-    new_password = hash_password(decrypt_password(new_password))
+    password = hash_password(decrypt_password(new_password))
     user: UserTable = await select_one(select(UserTable).where(UserTable.id == user_id))
 
     verify_password = check_password(old_password, user.password)
     if not verify_password:
         raise WrongPassword()
 
-    user.password = new_password
+    user.password = password
     await update_one(user)
 
 
@@ -247,7 +265,7 @@ async def edit_affiliation(*, affiliation_id: int, name: str, node_id: int) -> A
     return await insert_one(AffiliationTable, AffiliationCreate(name=name, nodeId=node_id))
 
 
-async def delete_affiliation(*, affiliation_id) -> AffiliationInfoResponse:
+async def delete_affiliation(*, affiliation_id: int) -> AffiliationInfoResponse:
     """
     删除一个所属关系
 
@@ -273,7 +291,8 @@ async def get_affiliation_tree(*, node_id: int, keyword: str = "") -> list[Affil
 
     affiliation_list: list[AffiliationInfoResponse] = await fetch_all(
         select(AffiliationTable).where(
-            AffiliationTable.nodeId == node_id, like(field=AffiliationTable.name, keyword=keyword)
+            AffiliationTable.nodeId == node_id,
+            like(field=AffiliationTable.name, keyword=keyword),
         )
     )
 
@@ -335,7 +354,10 @@ async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResp
     menu_list: list[MenuInfoResponse] = await fetch_all(
         select(MenuTable).where(
             MenuTable.nodeId == node_id,
-            or_(like(field=MenuTable.name, keyword=keyword), like(field=MenuTable.identifier, keyword=keyword)),
+            or_(
+                like(field=MenuTable.name, keyword=keyword),
+                like(field=MenuTable.identifier, keyword=keyword),
+            ),
         )
     )
 
@@ -366,7 +388,10 @@ async def edit_role(*, role_id: int, name: str, identifier: str, identifier_list
         role.identifierList = identifier_list
         return await update_one(role)
 
-    return await insert_one(RoleTable, RoleCreate(name=name, identifier=identifier, identifier_list=identifier_list))
+    return await insert_one(
+        RoleTable,
+        RoleCreate(name=name, identifier=identifier, identifierList=identifier_list),
+    )
 
 
 async def get_role_list(page: int, size: int, *, keyword: str = "") -> list[RoleInfoResponse]:
@@ -382,7 +407,10 @@ async def get_role_list(page: int, size: int, *, keyword: str = "") -> list[Role
     """
     return await fetch_page(
         select(RoleTable).where(
-            or_(like(field=RoleTable.name, keyword=keyword), like(field=RoleTable.identifier, keyword=keyword))
+            or_(
+                like(field=RoleTable.name, keyword=keyword),
+                like(field=RoleTable.identifier, keyword=keyword),
+            )
         ),
         page=page,
         size=size,

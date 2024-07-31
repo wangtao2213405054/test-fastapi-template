@@ -34,7 +34,9 @@ class CustomModel(BaseModel):
     """通用模型"""
 
     model_config = ConfigDict(
-        from_attributes=True, json_encoders={datetime: convert_datetime_to_gmt}, populate_by_name=True
+        from_attributes=True,
+        json_encoders={datetime: convert_datetime_to_gmt},
+        populate_by_name=True,
     )
 
     # noinspection PyNestedDecorators
@@ -72,8 +74,13 @@ class CustomModel(BaseModel):
         """
         body = self.serializable_dict()
 
-        def camel_to_snake_case(name):
-            # 使用正则表达式将驼峰命名转换为下划线命名
+        def camel_to_snake_case(name: str) -> str:
+            """
+            使用正则表达式将驼峰命名转换为下划线命名
+
+            :param name: 要转换的字段
+            :return:
+            """
             s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
             return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
@@ -111,9 +118,9 @@ class ResponseModel(BaseModel, Generic[T]):
     code: int = Field(200, description="状态码")
     ts: int = Field(int(time()), description="当前响应时间戳")
     message: str = Field("接口请求成功", description="消息体")
-    data: T = Field(None, description="返回的数据信息")
+    data: T | None = Field(None, description="返回的数据信息")
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs):  # type: ignore
         super(ResponseModel, self).__init__(**kwargs)
         self.ts = int(time())
 

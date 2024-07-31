@@ -1,5 +1,5 @@
 [tool.ruff]
-# 使用 PyCharm 而非 PEP 8 的 88
+# 使用 PEP 8 的 88
 line-length = 120
 target-version = "py312"
 indent-width = 4
@@ -50,3 +50,39 @@ exclude = [
 [tool.ruff.lint.mccabe]
 # 设置复杂度级别为 10
 max-complexity = 10
+
+# mypy 静态检查工具配置
+[tool.mypy]
+# 对 pydantic 模块进行支持
+plugins = [
+  "pydantic.mypy"
+]
+
+# 对导入的模块不进行检查，只对当前模块进行检查
+follow_imports = "silent"
+
+# 忽略导入模块时缺少的类型信息
+ignore_missing_imports = true
+
+# 启用冗余类型转换警告
+warn_redundant_casts = true
+
+# 检查未类型注解的函数定义
+check_untyped_defs = true
+
+# 防止隐式重新导出
+no_implicit_reexport = true
+
+# 不允许定义没有类型注解的函数
+disallow_untyped_defs = true
+
+
+[tool.pydantic-mypy]
+# 禁止 pydantic 模型初始化时包含额外的字段
+init_forbid_extra = true
+
+# 确保模型的字段类型在初始化时被正确类型检查
+init_typed = true
+
+# 警告缺少动态别名的情况
+warn_required_dynamic_aliases = true

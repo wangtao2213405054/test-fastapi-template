@@ -13,7 +13,7 @@ from pydantic import BaseModel
 class UserInfo(BaseModel):
     """用户信息"""
 
-    userId: str  # 用户ID
+    userId: int  # 用户ID
     connectedAt: float  # 连接到的时间
     session: str  # 用户 Session
 
@@ -23,7 +23,7 @@ class SocketIO(socketio.AsyncServer):
     socketio 的继承类, 封装了一些方法
     """
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs) -> None:  # type: ignore
         self._users: dict[int, UserInfo] = dict()
         self._session_user: dict[str, int] = dict()
         super(SocketIO, self).__init__(**kwargs)
@@ -78,7 +78,7 @@ class SocketIO(socketio.AsyncServer):
         """
         return self._users.get(user_id)
 
-    async def whisper(self, user_id: int, message: dict[str:Any]) -> None:
+    async def whisper(self, user_id: int, message: dict[str, Any]) -> None:
         """
         向某一用户发送消息
         :param user_id: 用户ID
@@ -90,7 +90,7 @@ class SocketIO(socketio.AsyncServer):
 
         await self.emit(jsonable_encoder(message), to=self._users[user_id].session)
 
-    async def broadcast(self, message: dict[str:Any]) -> None:
+    async def broadcast(self, message: dict[str, Any]) -> None:
         """
         向房间内的所有用户广播一条消息
         :param message: 要广播的消息体
