@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 
 from src.api.auth import jwt
-from src.constants import debug
+from src.config import debug
 from src.models.types import ResponseModel
 
 from .models.types import (

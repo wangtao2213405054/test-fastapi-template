@@ -9,6 +9,8 @@ from pydantic_settings import BaseSettings
 
 from src.constants import Environment
 
+from .exceptions import PermissionDenied
+
 
 class Config(BaseSettings):
     DATABASE_URL: MySQLDsn  # Mysql 数据库地址
@@ -47,3 +49,14 @@ if settings.ENVIRONMENT.is_deployed:
 
 if not settings.ENVIRONMENT.is_debug:
     app_configs["openapi_url"] = None  # hide docs
+
+
+def debug() -> None:
+    """
+    判断当前环境是否为 DEBUG, 如果不为真则抛出异常
+
+    :return:
+    """
+
+    if settings.ENVIRONMENT.is_debug:
+        raise PermissionDenied()
