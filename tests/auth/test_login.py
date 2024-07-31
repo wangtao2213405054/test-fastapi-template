@@ -15,6 +15,7 @@ async def test_public_key(client: AsyncClient) -> None:
     :return:
     """
     response = await client.get("/auth/public/key")
+    print(response.json())
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_200_OK
 
@@ -26,5 +27,6 @@ async def test_login(client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> No
     def fake_decrypt_password(password: str) -> str:
         return password
 
-    response = await client.post("/auth/user/login")
+    response = await client.post("/auth/swagger/login", data={"password": "123456", "username": "admin"})
+    print(response.json())
     assert response.status_code == status.HTTP_200_OK

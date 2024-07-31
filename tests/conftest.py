@@ -3,34 +3,49 @@ from typing import AsyncGenerator
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
-
-from src.main import app
-
-
-@pytest.fixture(autouse=True, scope="session")
-def run_migrations() -> None:
-    """
-    在测试会话开始时自动运行数据库迁移，并在测试会话结束后回滚迁移。
-
-    这个 fixture 会在整个测试会话中只运行一次。它会确保在测试开始之前应用所有的数据库迁移，
-    使测试环境中的数据库结构与应用程序代码保持一致。在测试结束后，它会回滚数据库迁移，
-    将数据库恢复到基础版本，确保测试环境的干净和一致性。
-
-    作用:
-        - 在测试会话开始时，运行数据库迁移，将数据库升级到最新版本。
-        - 在测试会话结束时，回滚数据库迁移，将数据库恢复到基础版本。
-    :return:
-    """
-    # import os
-
-    print("正在运行数据库迁移...")
-    # os.system("alembic upgrade head")
-    yield
-    # os.system("alembic downgrade base")
+from sqlmodel import SQLModel
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlmodel.pool import StaticPool
+from dotenv import load_dotenv
 
 
 @pytest_asyncio.fixture
-async def client() -> AsyncGenerator[AsyncClient, None]:
+async def session() -> AsyncSession:
+    """
+    Fixture 用于创建和管理异步数据库会话。
+
+    该 fixture 设置了一个异步 SQLite 数据库连接，创建所需的表，
+    并提供一个会话实例以供测试使用。
+    :return: 异步数据库会话实例
+    """
+    engine = create_async_engine(
+        "sqlite+aiosqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+        echo=True,
+    )
+    async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with engine.begin() as connection:
+        await connection.run_sync(SQLModel.metadata.create_all)
+
+    async with async_session() as session:
+        yield session
+
+
+@pytest.fixture(scope="session", autouse=True)
+def load_env() -> None:
+    """
+    Fixture 用于在会话级别自动加载环境变量。
+
+    该 fixture 确保在任何测试执行之前，.env 文件中的环境变量被加载。
+    :return:
+    """
+    load_dotenv()
+
+
+@pytest_asyncio.fixture
+async def client(session: AsyncSession, monkeypatch: pytest.MonkeyPatch) -> AsyncGenerator[AsyncClient, None]:
     """
     Fixture 用于创建一个 `AsyncClient` 实例，以便进行 HTTP 请求。
 
@@ -39,6 +54,13 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
 
     :return: AsyncGenerator[AsyncClient, None]: 一个异步生成器，生成 `AsyncClient` 实例。
     """
+    from src import database
+    from src.main import app
+
+    def get_session_override():
+        return session
+
+    monkeypatch.setattr(database, "get_session", get_session_override)
 
     transport = ASGITransport(app=app)  # type: ignore
     async with AsyncClient(transport=transport, base_url="http://localhost:8006/api/v1/client") as client:

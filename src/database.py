@@ -29,6 +29,10 @@ metadata = MetaData(naming_convention=DB_NAMING_CONVENTION)
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
+def get_session() -> AsyncSession:
+    return async_session()
+
+
 class UniqueDetails(BaseModel):
     """校验重复的实例"""
 
@@ -138,7 +142,7 @@ async def fetch_one(sql: Select | Insert | Update) -> T | None:
     :param sql: SQLAlchemy 语句
     :return: 返回数据库信息或 None
     """
-    async with async_session() as session:
+    async with get_session() as session:
         results = await session.execute(sql)
         return results.scalars().first()
 
@@ -151,7 +155,7 @@ async def select_one(sql: Select) -> T | None:
     :param sql: 查询语句
     :return:
     """
-    async with async_session() as session:
+    async with get_session() as session:
         results = await session.execute(sql)
         data = results.scalars().first()
 
@@ -171,7 +175,7 @@ async def fetch_page(sql: Select, page: int = 1, size: int = 20) -> list[T]:
     :param size: 每页大小
     :return:
     """
-    async with async_session() as session:
+    async with get_session() as session:
         results = await session.execute(sql.offset(0 if page <= 1 else page - 1).limit(size))
         return [result for result in results.scalars().all()]
 
@@ -184,7 +188,7 @@ async def fetch_all(sql: Select | Insert | Update) -> list[T]:
     :param sql: SQLAlchemy 语句
     :return: 返回数据库信息列表
     """
-    async with async_session() as session:
+    async with get_session() as session:
         results = await session.execute(sql)
         return [result for result in results.scalars().all()]
 
@@ -197,7 +201,7 @@ async def execute(sql: Insert | Update) -> None:
     :param sql: SQLAlchemy 语句
     :return: 不返回任何信息
     """
-    async with async_session() as session:
+    async with get_session() as session:
         await session.execute(sql)
 
 
@@ -210,7 +214,7 @@ async def insert_one(table: Type[SQLModel], model: SQLModel) -> T:
     :param model: 要添加的数据
     :return:
     """
-    async with async_session() as session:
+    async with get_session() as session:
         data = table.model_validate(model)
         session.add(data)
         await session.commit()
@@ -225,7 +229,7 @@ async def update_one(table: SQLModel) -> T:
     :param table: 要更新的数据模型
     :return: 返回更新后的数据模型
     """
-    async with async_session() as session:
+    async with get_session() as session:
         if hasattr(table, "updateTime"):
             table.updateTime = datetime.now()
 
@@ -243,7 +247,7 @@ async def delete_one(sql: Select) -> T:
     :param sql: 查询条件的 SQL 语句
     :return:
     """
-    async with async_session() as session:
+    async with get_session() as session:
         results = await session.execute(sql)
         data = results.scalars().first()
         if not data:
