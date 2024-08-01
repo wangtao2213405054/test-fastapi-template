@@ -6,15 +6,17 @@ from typing import AsyncGenerator
 
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
-from sqlmodel import SQLModel
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlmodel.pool import StaticPool
 from dotenv import load_dotenv
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlmodel import SQLModel
+from sqlmodel.pool import StaticPool
+
+from .types import AsyncInit
 
 
 @pytest_asyncio.fixture
-async def session() -> AsyncSession:
+async def session() -> AsyncGenerator[AsyncSession, None]:
     """
     Fixture 用于创建和管理异步数据库会话。
 
@@ -36,23 +38,45 @@ async def session() -> AsyncSession:
         await connection.run_sync(SQLModel.metadata.create_all)
 
     async with async_session() as session:
-
         yield session
 
 
 @pytest_asyncio.fixture
-async def init(session: AsyncSession):
-    from src.api.auth.models.models import AffiliationTable
-    from .types import InitDataBase
+async def init(session: AsyncSession) -> AsyncGenerator[AsyncInit, None]:
+    """
+    Fixture 用于初始化内存数据库数据。
 
-    affiliation = AffiliationTable(
-        name="字节跳动"
-    )
+    该 fixture 向数据表中添加了初试数据，并提供了一个会话实例以供测试使用。
+
+    :param session: 内存数据库 session 信息
+    :return:
+    """
+
+    from src.api.auth import security
+    from src.api.auth.models.models import AffiliationTable
+    from src.api.auth.models.models import UserCreate, UserTable
+
+    # 所属关系表
+    affiliation = AffiliationTable(name="字节跳动")
     db_affiliation = AffiliationTable.model_validate(affiliation)
     session.add(db_affiliation)
     await session.commit()
 
-    init_database = InitDataBase(affiliation=db_affiliation)
+    # 用户表
+    user = UserCreate(
+        email="admin@qq.com",
+        password=security.hash_password("123456"),
+        name="admin",
+        username="admin",
+        mobile="18888888888",
+        isAdmin=True,
+        affiliationId=db_affiliation.id,
+    )
+    db_user = UserTable.model_validate(user)
+    session.add(db_user)
+    await session.commit()
+
+    init_database = AsyncInit(affiliation=db_affiliation, user=db_user)
 
     yield init_database
 
@@ -83,8 +107,8 @@ async def client(session: AsyncSession, monkeypatch: pytest.MonkeyPatch) -> Asyn
     """
     from src import database
     from src.api.auth.jwt import parse_jwt_user_data
-    from src.main import app
     from src.config import settings
+    from src.main import app
 
     # 使用内存修改工具修改 get_session 类
     monkeypatch.setattr(database, "get_session", lambda: session)

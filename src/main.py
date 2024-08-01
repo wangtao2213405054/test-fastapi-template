@@ -16,7 +16,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from src.api import auth_router, public_auth_router
+from src.api.auth.public import router as public_auth_router
+from src.api.auth.router import router as auth_router
 from src.cache import lifespan
 from src.config import app_configs, settings
 from src.exceptions import DetailedHTTPException, message
