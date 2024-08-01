@@ -49,6 +49,9 @@ class CustomModel(BaseModel):
         :param data:
         :return:
         """
+        if not isinstance(data, dict):
+            return data
+
         datetime_fields = {k: v.replace(microsecond=0) for k, v in data.items() if isinstance(v, datetime)}
 
         return {**data, **datetime_fields}

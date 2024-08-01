@@ -65,7 +65,9 @@ async def user_login(body: AuthLoginRequest) -> ResponseModel[AccessTokenRespons
     :param body: 包含用户名和加密密码的 <AuthLoginRequest> 对象
     :return: 包含访问令牌和刷新令牌的 <ResponseModel> 对象
     """
-    user = await authenticate_user(body.username, decrypt_password(body.password))
+    password = decrypt_password(body.password)
+    user = await authenticate_user(body.username, password)
+
     token = jwt.create_access_token(user=dict(id=user.id, isAdmin=user.isAdmin))
     refresh_token = jwt.create_refresh_token(user=dict(id=user.id))
 
