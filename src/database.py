@@ -4,7 +4,7 @@
 
 from datetime import datetime
 from functools import wraps
-from typing import Any, Callable, Type, TypeVar
+from typing import Any, Awaitable, Callable, Type, TypeVar
 
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
@@ -14,13 +14,14 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel, col
 from sqlmodel import select as _select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel.sql.expression import Select
+from sqlmodel.sql.expression import Select, SelectOfScalar
 
 from src.config import settings
 from src.constants import DB_NAMING_CONVENTION
 from src.exceptions import DatabaseConflictError, DatabaseNotFound, DatabaseUniqueError
 
 T = TypeVar("T", bound=SQLModel)
+F = TypeVar("F", bound=Callable[..., Awaitable[Any]])
 
 # Mysql 数据库地址
 DATABASE_URL = str(settings.DATABASE_URL)
@@ -100,7 +101,8 @@ def unique_check(
                 if func_key:
                     clause.append(getattr(table, model_key) != func_key)
 
-                result = await select(_select(table).where(*clause), nullable=False)
+                result: Any = await select(_select(table).where(*clause), nullable=False)
+
                 if result:
                     raise DatabaseUniqueError(message)
 
@@ -112,7 +114,7 @@ def unique_check(
     return decorator
 
 
-def catch_database_exceptions(func: Callable[..., Any]) -> Callable[..., Any]:
+def catch_database_exceptions(func: F) -> F:
     """
     捕获 SQLAlchemy 抛出的 DatabaseError 并将结果转换成 JSON 返回
 
@@ -120,15 +122,14 @@ def catch_database_exceptions(func: Callable[..., Any]) -> Callable[..., Any]:
     :return:
     """
 
-    async def wrapper(*args, **kwargs) -> Callable[..., Any]:  # type: ignore
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:  # type: ignore
         try:
-            result = await func(*args, **kwargs)
-            return result
+            return await func(*args, **kwargs)
         except DatabaseError as error:
             error.orig = str(error.orig)  # type: ignore
             raise DatabaseConflictError(jsonable_encoder(error))
 
-    return wrapper
+    return wrapper  # type: ignore
 
 
 def like(*, field: Any, keyword: str) -> BinaryExpression[bool]:
@@ -143,7 +144,7 @@ def like(*, field: Any, keyword: str) -> BinaryExpression[bool]:
 
 
 @catch_database_exceptions
-async def select(sql: Select, *, nullable: bool = True) -> T:
+async def select(sql: Select | SelectOfScalar, *, nullable: bool = True) -> T:
     """
     查询单条数据, 如果未查询到则抛出 <NotFound> 异常
 
@@ -162,7 +163,7 @@ async def select(sql: Select, *, nullable: bool = True) -> T:
 
 
 @catch_database_exceptions
-async def pagination(sql: Select, *, page: int = 1, size: int = 20) -> list[T]:
+async def pagination(sql: Select | SelectOfScalar, *, page: int = 1, size: int = 20) -> list[T]:
     """
     查询多条数据并进行分页
 
@@ -177,7 +178,7 @@ async def pagination(sql: Select, *, page: int = 1, size: int = 20) -> list[T]:
 
 
 @catch_database_exceptions
-async def select_all(sql: Select) -> list[T]:
+async def select_all(sql: Select | SelectOfScalar) -> list[T]:
     """
     根据 SQL 查询符合条件的全部数据
 
@@ -224,7 +225,7 @@ async def update(table: SQLModel) -> T:
 
 
 @catch_database_exceptions
-async def delete(sql: Select) -> T:
+async def delete(sql: Select | SelectOfScalar) -> T:
     """
     从表中删除一条数据
 

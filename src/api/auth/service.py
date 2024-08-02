@@ -108,7 +108,7 @@ async def create_user(
     username = utils.pinyin(name)
     password_hash: bytes = hash_password(decrypt_password(password))
 
-    user = await database.insert(
+    user: UserResponse = await database.insert(
         UserTable,
         UserCreate(
             name=name,
