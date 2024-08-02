@@ -143,7 +143,7 @@ def like(*, field: Any, keyword: str) -> BinaryExpression[bool]:
 
 
 @catch_database_exceptions
-async def select(sql: Select[T], *, nullable: bool = True) -> T:
+async def select(sql: Select, *, nullable: bool = True) -> T:
     """
     查询单条数据, 如果未查询到则抛出 <NotFound> 异常
 
@@ -162,7 +162,7 @@ async def select(sql: Select[T], *, nullable: bool = True) -> T:
 
 
 @catch_database_exceptions
-async def pagination(sql: Select[T], *, page: int = 1, size: int = 20) -> list[T]:
+async def pagination(sql: Select, *, page: int = 1, size: int = 20) -> list[T]:
     """
     查询多条数据并进行分页
 
@@ -177,7 +177,7 @@ async def pagination(sql: Select[T], *, page: int = 1, size: int = 20) -> list[T
 
 
 @catch_database_exceptions
-async def select_all(sql: Select[T]) -> list[T]:
+async def select_all(sql: Select) -> list[T]:
     """
     根据 SQL 查询符合条件的全部数据
 
@@ -224,7 +224,7 @@ async def update(table: SQLModel) -> T:
 
 
 @catch_database_exceptions
-async def delete(sql: Select[T]) -> T:
+async def delete(sql: Select) -> T:
     """
     从表中删除一条数据
 
