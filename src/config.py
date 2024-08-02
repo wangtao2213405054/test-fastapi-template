@@ -58,5 +58,5 @@ def debug() -> None:
     :return:
     """
 
-    if settings.ENVIRONMENT.is_debug:
+    if not settings.ENVIRONMENT.is_debug:
         raise PermissionDenied()

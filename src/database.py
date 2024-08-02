@@ -8,10 +8,13 @@ from typing import Any, Callable, Type, TypeVar
 
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
-from sqlalchemy import BinaryExpression, Insert, MetaData, Select, Update
+from sqlalchemy import BinaryExpression, MetaData
 from sqlalchemy.exc import DatabaseError
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlmodel import SQLModel, col, select
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlmodel import SQLModel, col
+from sqlmodel import select as _select
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlmodel.sql.expression import Select
 
 from src.config import settings
 from src.constants import DB_NAMING_CONVENTION
@@ -97,7 +100,7 @@ def unique_check(
                 if func_key:
                     clause.append(getattr(table, model_key) != func_key)
 
-                result = await fetch_one(select(table).where(*clause))
+                result = await select(_select(table).where(*clause), nullable=False)
                 if result:
                     raise DatabaseUniqueError(message)
 
@@ -140,38 +143,26 @@ def like(*, field: Any, keyword: str) -> BinaryExpression[bool]:
 
 
 @catch_database_exceptions
-async def fetch_one(sql: Select | Insert | Update) -> T | None:
-    """
-    处理数据库单条数据
-
-    :param sql: SQLAlchemy 语句
-    :return: 返回数据库信息或 None
-    """
-    async with get_session() as session:
-        results = await session.execute(sql)
-        return results.scalars().first()
-
-
-@catch_database_exceptions
-async def select_one(sql: Select) -> T | None:
+async def select(sql: Select[T], *, nullable: bool = True) -> T:
     """
     查询单条数据, 如果未查询到则抛出 <NotFound> 异常
 
     :param sql: 查询语句
+    :param nullable: 是否可以为空, 默认允许为空, 不允许为空后将抛出异常
     :return:
     """
     async with get_session() as session:
-        results = await session.execute(sql)
-        data = results.scalars().first()
+        results = await session.exec(sql)
+        data = results.first()
 
-        if not data:
+        if not nullable and not data:
             raise DatabaseNotFound()
 
         return data  # type: ignore
 
 
 @catch_database_exceptions
-async def fetch_page(sql: Select, page: int = 1, size: int = 20) -> list[T]:
+async def pagination(sql: Select[T], *, page: int = 1, size: int = 20) -> list[T]:
     """
     查询多条数据并进行分页
 
@@ -181,37 +172,25 @@ async def fetch_page(sql: Select, page: int = 1, size: int = 20) -> list[T]:
     :return:
     """
     async with get_session() as session:
-        results = await session.execute(sql.offset(0 if page <= 1 else page - 1).limit(size))
-        return [result for result in results.scalars().all()]
+        results = await session.exec(sql.offset(0 if page <= 1 else page - 1).limit(size))
+        return [result for result in results.all()]
 
 
 @catch_database_exceptions
-async def fetch_all(sql: Select | Insert | Update) -> list[T]:
+async def select_all(sql: Select[T]) -> list[T]:
     """
-    处理数据库多条数据
+    根据 SQL 查询符合条件的全部数据
 
     :param sql: SQLAlchemy 语句
     :return: 返回数据库信息列表
     """
     async with get_session() as session:
-        results = await session.execute(sql)
-        return [result for result in results.scalars().all()]
+        results = await session.exec(sql)
+        return [result for result in results.all()]
 
 
 @catch_database_exceptions
-async def execute(sql: Insert | Update) -> None:
-    """
-    执行数据库 SQLAlchemy 语句
-
-    :param sql: SQLAlchemy 语句
-    :return: 不返回任何信息
-    """
-    async with get_session() as session:
-        await session.execute(sql)
-
-
-@catch_database_exceptions
-async def insert_one(table: Type[SQLModel], model: SQLModel) -> T:
+async def insert(table: Type[SQLModel], model: SQLModel) -> T:
     """
     向表中添加一个数据
 
@@ -227,7 +206,7 @@ async def insert_one(table: Type[SQLModel], model: SQLModel) -> T:
 
 
 @catch_database_exceptions
-async def update_one(table: SQLModel) -> T:
+async def update(table: SQLModel) -> T:
     """
     向表中更新一条数据
 
@@ -245,7 +224,7 @@ async def update_one(table: SQLModel) -> T:
 
 
 @catch_database_exceptions
-async def delete_one(sql: Select) -> T:
+async def delete(sql: Select[T]) -> T:
     """
     从表中删除一条数据
 
@@ -253,8 +232,9 @@ async def delete_one(sql: Select) -> T:
     :return:
     """
     async with get_session() as session:
-        results = await session.execute(sql)
-        data = results.scalars().first()
+        results = await session.exec(sql)
+        data = results.first()
+
         if not data:
             raise DatabaseNotFound()
 
