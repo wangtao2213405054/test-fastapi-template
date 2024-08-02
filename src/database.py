@@ -30,6 +30,11 @@ async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit
 
 
 def get_session() -> AsyncSession:
+    """
+    返回异步数据库会话对象
+
+    :return:
+    """
     return async_session()
 
 

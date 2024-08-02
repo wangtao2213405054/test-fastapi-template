@@ -42,7 +42,7 @@ async def session() -> AsyncGenerator[AsyncSession, None]:
 
 
 @pytest_asyncio.fixture
-async def init(session: AsyncSession) -> AsyncGenerator[AsyncInit, None]:
+async def init(session: AsyncSession) -> AsyncInit:
     """
     Fixture 用于初始化内存数据库数据。
 
@@ -78,7 +78,7 @@ async def init(session: AsyncSession) -> AsyncGenerator[AsyncInit, None]:
 
     init_database = AsyncInit(affiliation=db_affiliation, user=db_user)
 
-    yield init_database
+    return init_database
 
 
 @pytest.fixture(scope="session", autouse=True)

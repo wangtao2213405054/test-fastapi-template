@@ -42,7 +42,7 @@ async def test_login(
 
 
 @pytest.mark.asyncio
-async def test_get_menu_list(client: AsyncClient, session: AsyncSession, init: AsyncInit) -> None:
+async def test_get_menu_list(client: AsyncClient, session: AsyncSession) -> None:
     """测试 /menu/list 接口"""
 
     from src.api.auth.models import MenuTable
