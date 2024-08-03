@@ -10,8 +10,8 @@ from dotenv import load_dotenv
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
-from sqlmodel.pool import StaticPool
 from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlmodel.pool import StaticPool
 
 from .types import AsyncInit
 
@@ -54,8 +54,7 @@ async def init(session: AsyncSession) -> AsyncInit:
     """
 
     from src.api.auth import security
-    from src.api.auth.models.models import AffiliationTable
-    from src.api.auth.models.models import UserCreate, UserTable
+    from src.api.auth.models.models import AffiliationTable, UserCreate, UserTable
 
     # 所属关系表
     affiliation = AffiliationTable(name="字节跳动")

@@ -2,10 +2,12 @@
 # _date: 2024/7/26 14:20
 # _description: Auth 验证相关的服务器业务逻辑
 
+import asyncio
 import logging
 from typing import Annotated
 
 from fastapi import Depends
+from sqlalchemy.sql.elements import ColumnElement
 from sqlmodel import or_, select
 
 from src import database, utils
@@ -278,21 +280,29 @@ async def get_affiliation_tree(*, node_id: int, keyword: str = "") -> list[Affil
     """
     affiliation_dict_list: list[AffiliationListResponse] = []
 
-    affiliation_list: list[AffiliationInfoResponse] = await database.select_all(
-        select(AffiliationTable).where(
-            AffiliationTable.nodeId == node_id,
-            database.like(field=AffiliationTable.name, keyword=keyword),
-        )
-    )
+    clause: list[ColumnElement[bool] | bool] = [database.like(field=AffiliationTable.name, keyword=keyword)]
 
-    for item in affiliation_list:
-        children = await get_affiliation_tree(node_id=item.id)
-        items = AffiliationListResponse(children=children, **item.model_dump())
-        affiliation_dict_list.append(items)
+    if node_id or not keyword:
+        clause.append(AffiliationTable.nodeId == node_id)
+
+    query = select(AffiliationTable).where(*clause)
+    affiliation_list: list[AffiliationInfoResponse] = await database.select_all(query)
+
+    tasks = [get_affiliation_tree(node_id=item.id, keyword=keyword) for item in affiliation_list]
+    children_list = await asyncio.gather(*tasks)
+
+    for item, children in zip(affiliation_list, children_list):
+        affiliation_dict_list.append(AffiliationListResponse(children=children, **item.model_dump()))
 
     return affiliation_dict_list
 
 
+@database.unique_check(
+    MenuTable,
+    func_key="menu_id",
+    model_key="id",
+    identifier=database.UniqueDetails(message="标识已存在"),
+)
 async def edit_menu(*, menu_id: int, name: str, identifier: str, node_id: int) -> MenuInfoResponse:
     """
     创建/更新一个权限菜单
@@ -334,26 +344,39 @@ async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResp
 
     该函数递归地获取从指定节点开始的所有子菜单，并根据 `keyword` 进行关键字匹配。
 
+    条件构成:
+        - 如果 keyword 不为空，则添加模糊匹配条件。
+        - 如果 node_id 不为空，或者 keyword 为空，则添加 node_id 的条件。
+        - 如果当 keyword 和 node_id 都为空时，仍需要通过 node_id 进行过滤。
+
     :param node_id: 开始节点 ID
     :param keyword: 关键字匹配（可选）
     :return: 所有子菜单的列表
     """
     menu_dict_list: list[MenuListResponse] = []
 
-    menu_list: list[MenuInfoResponse] = await database.select_all(
-        select(MenuTable).where(
-            MenuTable.nodeId == node_id,
-            or_(
-                database.like(field=MenuTable.name, keyword=keyword),
-                database.like(field=MenuTable.identifier, keyword=keyword),
-            ),
+    clause: list[ColumnElement[bool] | bool] = [
+        or_(
+            database.like(field=MenuTable.name, keyword=f"%{keyword}%"),
+            database.like(field=MenuTable.identifier, keyword=f"%{keyword}%"),
         )
-    )
+    ]
 
-    for item in menu_list:
-        children = await get_menu_tree(node_id=item.id)
-        items = MenuListResponse(children=children, **item.model_dump())
-        menu_dict_list.append(items)
+    # 如果 keyword 为空 或 node_id 为真将 node_id 添加入 where 条件
+    if node_id or not keyword:
+        clause.append(MenuTable.nodeId == node_id)
+
+    # 查询菜单列表
+    query = select(MenuTable).where(*clause)
+    menu_list: list[MenuInfoResponse] = await database.select_all(query)
+
+    # 并行获取子菜单
+    tasks = [get_menu_tree(node_id=item.id, keyword=keyword) for item in menu_list]
+    children_list = await asyncio.gather(*tasks)
+
+    # 构建响应列表
+    for item, children in zip(menu_list, children_list):
+        menu_dict_list.append(MenuListResponse(children=children, **item.model_dump()))
 
     return menu_dict_list
 

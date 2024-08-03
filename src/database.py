@@ -93,13 +93,13 @@ def unique_check(
                     _key = key
                     message = detail
 
-                value = kwargs.get(_key)
-                clause = [getattr(table, key) == value]
+                clause = [getattr(table, key) == kwargs.get(_key)]
 
-                if func_key:
-                    clause.append(getattr(table, model_key) != func_key)  # type: ignore
+                # 只有当调用此装饰器的函数Key 为真时才添加此条件
+                if func_key and kwargs.get("func_key"):
+                    clause.append(getattr(table, model_key) != kwargs.get("func_key"))  # type: ignore
 
-                result: Any = await select(_select(table).where(*clause), nullable=False)
+                result: Any = await select(_select(table).where(*clause))
 
                 if result:
                     raise DatabaseUniqueError(message)
