@@ -80,8 +80,8 @@ def decrypt_password(password: str) -> str:
 
 @database.unique_check(
     UserTable,
-    mobile=database.UniqueDetails(message="手机号码已存在"),
-    email=database.UniqueDetails(message="邮件已存在"),
+    mobile=database.UniqueDetails(message="手机号码"),
+    email=database.UniqueDetails(message="邮箱"),
 )
 async def create_user(
     *,
@@ -301,7 +301,7 @@ async def get_affiliation_tree(*, node_id: int, keyword: str = "") -> list[Affil
     MenuTable,
     func_key="menu_id",
     model_key="id",
-    identifier=database.UniqueDetails(message="标识已存在"),
+    identifier=database.UniqueDetails(message="标识符"),
 )
 async def edit_menu(*, menu_id: int, name: str, identifier: str, node_id: int) -> MenuInfoResponse:
     """
@@ -381,6 +381,12 @@ async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResp
     return menu_dict_list
 
 
+@database.unique_check(
+    MenuTable,
+    func_key="menu_id",
+    model_key="id",
+    identifier=database.UniqueDetails(message="标识符"),
+)
 async def edit_role(*, role_id: int, name: str, identifier: str, identifier_list: list[str]) -> RoleInfoResponse:
     """
     创建/修改一个角色信息

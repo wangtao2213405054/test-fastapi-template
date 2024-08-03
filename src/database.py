@@ -1,7 +1,7 @@
 # _author: Coke
 # _date: 2024/7/26 17:25
 # _description: 数据库操作相关函数
-
+import asyncio
 from datetime import datetime
 from functools import wraps
 from typing import Any, Callable, Type, TypeVar
@@ -83,26 +83,39 @@ def unique_check(
         async def wrapper(*args, **kwargs) -> Callable[..., Any]:  # type: ignore
             """回调函数的入参信息"""
 
+            message_list: list[str] = []
+            tasks = []
+
             # 执行唯一性检查
             for key, detail in unique.items():
                 # 兼容性的处理, 支持 UniqueDetails or Str
                 if issubclass(detail.__class__, UniqueDetails):
                     _key = detail.kwargsKey or key
                     message = detail.message
+
                 else:
                     _key = key
                     message = detail
 
+                message_list.append(message)
                 clause = [getattr(table, key) == kwargs.get(_key)]
 
                 # 只有当调用此装饰器的函数Key 为真时才添加此条件
                 if func_key and kwargs.get("func_key"):
                     clause.append(getattr(table, model_key) != kwargs.get("func_key"))  # type: ignore
 
-                result: Any = await select(_select(table).where(*clause))
+                tasks.append(select(_select(table).where(*clause)))
 
+            task_result = await asyncio.gather(*tasks)
+
+            error_message = []
+
+            for message, result in zip(message_list, task_result):
                 if result:
-                    raise DatabaseUniqueError(message)
+                    error_message.append(message)
+
+            if len(error_message):
+                raise DatabaseUniqueError(f"{"、".join(error_message)}已存在")
 
             # 调用原始函数
             return await func(*args, **kwargs)
