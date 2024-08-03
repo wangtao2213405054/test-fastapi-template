@@ -87,4 +87,5 @@ async def refresh_user_token(
     :return: 包含新生成的访问令牌和刷新令牌的 <ResponseModel> 对象
     """
     # 实际处理逻辑应当在这里实现
-    ...
+    print(body)
+    return ResponseModel(data=AccessTokenResponse(accessToken="TEST123", refreshToken="<PASSWORD>"))

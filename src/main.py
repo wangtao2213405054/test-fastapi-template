@@ -15,12 +15,14 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
+from sqlalchemy.exc import DatabaseError
 
 from src.api.auth.public import router as public_auth_router
 from src.api.auth.router import router as auth_router
 from src.cache import lifespan
 from src.config import app_configs, settings
 from src.exceptions import DetailedHTTPException, message
+from src.exceptions import status as _status
 from src.models.types import ResponseModel
 from src.websocketio import socket_app
 
@@ -101,6 +103,28 @@ async def validation_handler(_request: Request, exc: RequestValidationError) -> 
                 data=dict(body=exc.body, detail=jsonable_encoder(exc.errors()))
                 if settings.ENVIRONMENT.is_debug
                 else None,
+            )
+        ),
+    )
+
+
+@app.exception_handler(DatabaseError)
+async def database_error_handler(_request: Request, exc: DatabaseError) -> JSONResponse:
+    """
+    捕获 SQLAlchemy 抛出的 DatabaseError 并将结果转换成 JSON 返回
+
+    :param _request: FastApi <Request> 对象
+    :param exc: <DatabaseError> 类
+    :return:
+    """
+    exc.orig = str(exc.orig)  # type: ignore
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=jsonable_encoder(
+            ResponseModel(
+                code=_status.DATABASE_600_BAD_SQL,
+                message=message.DATABASE_600_BAD_SQL,
+                data=jsonable_encoder(exc) if settings.ENVIRONMENT.is_debug else None,
             )
         ),
     )
