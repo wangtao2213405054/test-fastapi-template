@@ -31,7 +31,7 @@ app = FastAPI(**app_configs, lifespan=lifespan)
 
 
 # 添加 socketio 事件处理程序
-app.mount("/socket", socket_app)
+app.mount(settings.SOCKET_PREFIX, socket_app)
 
 
 # 错误捕获与转发

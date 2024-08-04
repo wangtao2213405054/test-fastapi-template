@@ -30,7 +30,9 @@ class Config(BaseSettings):
 
     LOGGING_LEVEL: str = "INFO"  # 日志等级
 
-    PREFIX: str = "/api/v1/client"
+    PREFIX: str = "/api/v1/client"  # http 请求前缀
+
+    SOCKET_PREFIX: str = "/socket/v1/client"  # socket 请求前缀
 
     @model_validator(mode="after")
     def validate_sentry_non_local(self) -> "Config":

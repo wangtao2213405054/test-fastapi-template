@@ -8,6 +8,7 @@ from typing import Any
 import socketio
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
+from src.config import settings
 
 
 class UserInfo(BaseModel):
@@ -103,4 +104,4 @@ class SocketIO(socketio.AsyncServer):
 
 
 socket = SocketIO(async_mode="asgi", cors_allowed_origins="*")
-socket_app = socketio.ASGIApp(socket)
+socket_app = socketio.ASGIApp(socket, socketio_path=settings.SOCKET_PREFIX)
