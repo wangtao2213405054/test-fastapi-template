@@ -115,7 +115,7 @@ class AuthEditRoleRequest(CustomModel):
     id: int = Body(None, description="角色ID")
     name: str = Body(..., description="角色名称")
     describe: str = Body(None, description="角色描述")
-    menuIdentifierList: list[str] = Body(..., description="菜单权限标识符")
+    menuIdentifierList: list[str] = Body([], description="菜单权限标识符")
 
 
 class AuthGetRoleListRequest(GeneralKeywordPageRequestModel):

@@ -59,8 +59,8 @@ makemigrations *args:
   docker compose exec app makemigrations {{args}}
 
 # 将 Docker 中的代码使用 ruff 格式化
-ruff:
-  docker compose exec app format
+ruff *args:
+  docker compose exec app format {{args}}
 
 # 使用 mypy 进行代码静态检查
 mypy:

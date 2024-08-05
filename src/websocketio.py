@@ -8,6 +8,7 @@ from typing import Any
 import socketio
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
+
 from src.config import settings
 
 

@@ -5,10 +5,10 @@
 import datetime
 from typing import Annotated
 
-from fastapi import Depends
-from fastapi.security import OAuth2PasswordBearer
 from authlib.jose import jwt
 from authlib.jose.errors import JoseError
+from fastapi import Depends
+from fastapi.security import OAuth2PasswordBearer
 
 from src.api.auth.config import auth_config
 from src.api.auth.exceptions import AuthorizationFailed, AuthRequired, InvalidToken, RefreshTokenNotValid
@@ -19,10 +19,7 @@ from .models.types import JWTData, JWTRefreshTokenData
 # OAuth2PasswordBearer 实例，用于从请求中提取 JWT Token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.PREFIX}/auth/swagger/login", auto_error=False)
 
-HEADER = dict(
-    alg=auth_config.JWT_ALG,
-    typ="JWT"
-)
+HEADER = dict(alg=auth_config.JWT_ALG, typ="JWT")
 
 
 def create_access_token(

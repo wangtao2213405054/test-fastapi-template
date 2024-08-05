@@ -455,12 +455,6 @@ async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResp
     return menu_dict_list
 
 
-@database.unique_check(
-    MenuTable,
-    func_key="menu_id",
-    model_key="id",
-    identifier=database.UniqueDetails(message="标识符"),
-)
 async def edit_role(*, role_id: int, name: str, describe: str, identifier_list: list[str]) -> RoleInfoResponse:
     """
     创建/修改一个角色信息
@@ -476,13 +470,13 @@ async def edit_role(*, role_id: int, name: str, describe: str, identifier_list: 
     if role_id:
         role: RoleInfoResponse = await database.select(select(RoleTable).where(RoleTable.id == role_id), nullable=False)
         role.name = name
-        role.identifier = describe
+        role.describe = describe
         role.identifierList = identifier_list
         return await database.update(role)
 
     return await database.insert(
         RoleTable,
-        RoleCreate(name=name, identifier=describe, identifierList=identifier_list),
+        RoleCreate(name=name, describe=describe, identifierList=identifier_list),
     )
 
 

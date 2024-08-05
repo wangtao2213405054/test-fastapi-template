@@ -4,7 +4,7 @@
 import asyncio
 from datetime import datetime
 from functools import wraps
-from typing import Any, Callable, Type, TypeVar, Awaitable
+from typing import Any, Awaitable, Callable, Type, TypeVar
 
 from pydantic import BaseModel
 from sqlalchemy import BinaryExpression, MetaData

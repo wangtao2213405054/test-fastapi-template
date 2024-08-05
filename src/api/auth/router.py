@@ -163,7 +163,7 @@ async def menu_delete(body: DeleteRequestModel) -> ResponseModel[MenuInfoRespons
 
 
 @router.put("/role/edit")
-async def role_edit(body: AuthEditRoleRequest) -> ResponseModel:
+async def role_edit(body: AuthEditRoleRequest) -> ResponseModel[RoleInfoResponse]:
     """
     添加或更新角色信息接口
 
@@ -172,13 +172,13 @@ async def role_edit(body: AuthEditRoleRequest) -> ResponseModel:
     :param body: 包含角色信息的 <AuthEditRoleRequest> 对象
     :return: 无内容的 <ResponseModel> 对象
     """
-    await edit_role(
+    role = await edit_role(
         role_id=body.id,
         name=body.name,
         describe=body.describe,
         identifier_list=body.menuIdentifierList,
     )
-    return ResponseModel()
+    return ResponseModel(data=role)
 
 
 @router.post("/role/list")
