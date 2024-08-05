@@ -3,24 +3,23 @@
 # _description: Auth 验证相关的服务器业务逻辑
 
 import asyncio
+import datetime
 import logging
+import uuid
 from typing import Annotated
 
 from fastapi import Depends
 from sqlalchemy.sql.elements import ColumnElement
 from sqlmodel import or_, select
 
-from src import database, utils
+from src import cache, database, utils
+from src.api.auth import jwt
+from src.models.types import RedisData
 from src.utils import validate
 
-from .config import PRIVATE_KEY, PUBLIC_KEY
-from .exceptions import (
-    InvalidPassword,
-    InvalidUsername,
-    StandardsPassword,
-    WrongPassword,
-)
-from .jwt import parse_jwt_user_data
+from .config import PRIVATE_KEY, PUBLIC_KEY, auth_config
+from .exceptions import InvalidPassword, InvalidUsername, RefreshTokenNotValid, StandardsPassword, WrongPassword
+from .jwt import parse_jwt_refresh_token, parse_jwt_user_data
 from .models.models import (
     AffiliationCreate,
     AffiliationInfoResponse,
@@ -37,8 +36,10 @@ from .models.models import (
     UserResponse,
     UserTable,
 )
-from .models.types import JWTData
+from .models.types import AccessTokenResponse, JWTData, JWTRefreshTokenData
 from .security import check_password, decrypt_message, hash_password, serialize_key
+
+REDIS_REFRESH_KEY = "REFRESH_UUID_"
 
 
 def get_public_key() -> str:
@@ -51,6 +52,69 @@ def get_public_key() -> str:
     """
     public_key_pem = serialize_key(PUBLIC_KEY)
     return public_key_pem.decode("utf-8")
+
+
+async def login(username: str, password: str) -> AccessTokenResponse:
+    """
+    用户登录并生成用户访问令牌
+
+    :param username: 用户名(邮箱)
+    :param password: 密码
+    :return: Token and Refresh Token
+    """
+
+    password_decrypt = decrypt_password(password)
+    user = await authenticate_user(username, password_decrypt)
+
+    response = await create_token(user)
+
+    return response
+
+
+async def create_token(user: UserTable) -> AccessTokenResponse:
+    """
+    创建用户访问令牌
+
+    生成访问令牌并将 Refresh Token 中的 uuid 存储到 Redis
+
+    :param user: 用户信息对象
+    :return: Token and Refresh Token
+    """
+
+    token_user_info = JWTData(userId=user.id, isAdmin=user.isAdmin)
+    token = jwt.create_access_token(user=token_user_info)
+
+    _uuid = str(uuid.uuid4())
+    expires_delta: datetime.timedelta = datetime.timedelta(minutes=auth_config.REFRESH_TOKEN_EXP)
+    refresh_user_info = JWTRefreshTokenData(userId=user.id, uuid=_uuid)
+    _refresh_token = jwt.create_refresh_token(user=refresh_user_info, expires_delta=expires_delta)
+
+    redis_value = RedisData(key=f"{REDIS_REFRESH_KEY}{1}", value=_uuid, ttl=expires_delta)
+    await cache.set_redis_key(redis_value)
+
+    return AccessTokenResponse(accessToken=token, refreshToken=_refresh_token)
+
+
+async def refresh_token(token: str) -> AccessTokenResponse:
+    """
+    通过刷新令牌获取新的 Access Token 和 Refresh Token
+
+    :param token: 刷新令牌
+    :return: Token and Refresh Token
+    :raises RefreshTokenNotValid: 当令牌无效、过期、和缓存不匹配或无法解码时。
+    """
+
+    _refresh_token = await parse_jwt_refresh_token(token=token)
+
+    redis_key = await cache.get_by_key(key=f"{REDIS_REFRESH_KEY}{_refresh_token.userId}")
+
+    if redis_key != _refresh_token.uuid:
+        raise RefreshTokenNotValid()
+
+    user: UserTable = await database.select(select(UserTable).where(UserTable.id == _refresh_token.userId))
+    response = await create_token(user)
+
+    return response
 
 
 def decrypt_password(password: str) -> str:

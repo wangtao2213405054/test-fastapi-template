@@ -4,7 +4,7 @@
 import asyncio
 from datetime import datetime
 from functools import wraps
-from typing import Any, Callable, Type, TypeVar
+from typing import Any, Callable, Type, TypeVar, Awaitable
 
 from pydantic import BaseModel
 from sqlalchemy import BinaryExpression, MetaData
@@ -84,7 +84,7 @@ def unique_check(
             """回调函数的入参信息"""
 
             message_list: list[str] = []
-            tasks = []
+            tasks: list[Awaitable] = []
 
             # 执行唯一性检查
             for key, detail in unique.items():

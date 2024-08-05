@@ -1,24 +1,33 @@
+# _author: Coke
+# _date: 2024/7/26 14:20
+# _description: Token 相关
+
 import datetime
-import uuid
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+from authlib.jose import jwt
+from authlib.jose.errors import JoseError
 
 from src.api.auth.config import auth_config
-from src.api.auth.exceptions import AuthorizationFailed, AuthRequired, InvalidToken
+from src.api.auth.exceptions import AuthorizationFailed, AuthRequired, InvalidToken, RefreshTokenNotValid
 from src.config import settings
 
-from .models.types import JWTData
+from .models.types import JWTData, JWTRefreshTokenData
 
 # OAuth2PasswordBearer 实例，用于从请求中提取 JWT Token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.PREFIX}/auth/swagger/login", auto_error=False)
 
+HEADER = dict(
+    alg=auth_config.JWT_ALG,
+    typ="JWT"
+)
+
 
 def create_access_token(
     *,
-    user: dict[str, Any],
+    user: JWTData,
     expires_delta: datetime.timedelta = datetime.timedelta(minutes=auth_config.ACCESS_TOKEN_EXP),
 ) -> str:
     """
@@ -28,17 +37,19 @@ def create_access_token(
     :param expires_delta: 令牌的有效期，默认为配置中指定的有效期。
     :return: 生成的 JWT 访问令牌字符串。
     """
-    jwt_data = dict(
-        sub=str(user.get("id")),
-        isAdmin=user.get("isAdmin"),
+
+    payload = dict(
+        sub=str(user.userId),
+        isAdmin=user.isAdmin,
         exp=datetime.datetime.now(datetime.UTC) + expires_delta,
     )
-    return jwt.encode(jwt_data, auth_config.ACCESS_TOKEN_KEY, algorithm=auth_config.JWT_ALG)
+
+    return jwt.encode(header=HEADER, payload=payload, key=auth_config.ACCESS_TOKEN_KEY).decode("utf-8")
 
 
 def create_refresh_token(
     *,
-    user: dict[str, Any],
+    user: JWTRefreshTokenData,
     expires_delta: datetime.timedelta = datetime.timedelta(minutes=auth_config.REFRESH_TOKEN_EXP),
 ) -> str:
     """
@@ -48,12 +59,31 @@ def create_refresh_token(
     :param expires_delta: 刷新令牌的有效期，默认为配置中指定的有效期。
     :return: 生成的 JWT 刷新令牌字符串。
     """
-    jwt_data = dict(
-        sub=str(user.get("id")),
+
+    payload = dict(
+        sub=str(user.userId),
         exp=datetime.datetime.now(datetime.UTC) + expires_delta,
-        uuid=str(uuid.uuid4()),
+        uuid=str(user.uuid),
     )
-    return jwt.encode(jwt_data, auth_config.REFRESH_TOKEN_KEY, algorithm=auth_config.JWT_ALG)
+
+    return jwt.encode(header=HEADER, payload=payload, key=auth_config.REFRESH_TOKEN_KEY).decode("utf-8")
+
+
+async def parse_jwt_refresh_token(token: str) -> JWTRefreshTokenData:
+    """
+    解析 JWT 刷新令牌并返回解码后的刷新数据。
+
+    :param token:
+    :return: 解码后的 JWTRefreshTokenData 数据对象。 如果令牌无效或解析失败，则抛出 RefreshTokenNotValid 异常。
+    :raises RefreshTokenNotValid: 当令牌无效、过期或无法解码时。
+    """
+
+    try:
+        payload = jwt.decode(token, auth_config.REFRESH_TOKEN_KEY)
+    except JoseError:
+        raise RefreshTokenNotValid()
+
+    return JWTRefreshTokenData(**payload)
 
 
 async def parse_jwt_user_data_optional(
@@ -70,8 +100,8 @@ async def parse_jwt_user_data_optional(
         return None
 
     try:
-        payload = jwt.decode(token, auth_config.ACCESS_TOKEN_KEY, algorithms=[auth_config.JWT_ALG])
-    except JWTError:
+        payload = jwt.decode(token, auth_config.ACCESS_TOKEN_KEY)
+    except JoseError:
         raise InvalidToken()
 
     return JWTData(**payload)

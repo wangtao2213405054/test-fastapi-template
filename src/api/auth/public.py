@@ -11,13 +11,8 @@ from src.api.auth import jwt
 from src.config import debug
 from src.models.types import ResponseModel
 
-from .models.types import (
-    AccessTokenResponse,
-    AuthLoginRequest,
-    RefreshTokenRequest,
-    SwaggerToken,
-)
-from .service import authenticate_user, decrypt_password, get_public_key
+from .models.types import AccessTokenResponse, AuthLoginRequest, JWTData, RefreshTokenRequest, SwaggerToken
+from .service import authenticate_user, get_public_key, login, refresh_token
 
 router = APIRouter(prefix="/auth")
 
@@ -50,7 +45,7 @@ async def swagger_login(
     """
     user = await authenticate_user(form.username, form.password)
     return SwaggerToken(
-        access_token=jwt.create_access_token(user=dict(id=user.id, isAdmin=user.isAdmin)),
+        access_token=jwt.create_access_token(user=JWTData(userId=user.id, isAdmin=user.isAdmin)),
         token_type="bearer",
     )
 
@@ -65,19 +60,14 @@ async def user_login(body: AuthLoginRequest) -> ResponseModel[AccessTokenRespons
     :param body: 包含用户名和加密密码的 <AuthLoginRequest> 对象
     :return: 包含访问令牌和刷新令牌的 <ResponseModel> 对象
     """
-    password = decrypt_password(body.password)
-    user = await authenticate_user(body.username, password)
 
-    token = jwt.create_access_token(user=dict(id=user.id, isAdmin=user.isAdmin))
-    refresh_token = jwt.create_refresh_token(user=dict(id=user.id))
+    response: AccessTokenResponse = await login(body.username, body.password)
 
-    return ResponseModel(data=AccessTokenResponse(accessToken=token, refreshToken=refresh_token))
+    return ResponseModel(data=response)
 
 
 @router.post("/refresh/token")
-async def refresh_user_token(
-    body: RefreshTokenRequest,
-) -> ResponseModel[AccessTokenResponse]:
+async def refresh_user_token(body: RefreshTokenRequest) -> ResponseModel[AccessTokenResponse]:
     """
     刷新用户令牌接口
 
@@ -86,6 +76,6 @@ async def refresh_user_token(
     :param body: 包含刷新令牌的 <RefreshTokenRequest> 对象
     :return: 包含新生成的访问令牌和刷新令牌的 <ResponseModel> 对象
     """
-    # 实际处理逻辑应当在这里实现
-    print(body)
-    return ResponseModel(data=AccessTokenResponse(accessToken="TEST123", refreshToken="<PASSWORD>"))
+
+    response: AccessTokenResponse = await refresh_token(body.refreshToken)
+    return ResponseModel(data=response)

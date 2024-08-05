@@ -16,8 +16,15 @@ from src.utils import validate
 class JWTData(CustomModel):
     """Token解析后的数据"""
 
-    userId: int = Field(alias="sub")
+    userId: int | None = Field(alias="sub")
     isAdmin: bool = False
+
+
+class JWTRefreshTokenData(CustomModel):
+    """Refresh Token 解析后的数据"""
+
+    userId: int | None = Field(alias="sub")
+    uuid: str
 
 
 class AuthLoginRequest(CustomModel):
