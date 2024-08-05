@@ -39,7 +39,17 @@ from .models.models import (
 from .models.types import AccessTokenResponse, JWTData, JWTRefreshTokenData
 from .security import check_password, decrypt_message, hash_password, serialize_key
 
-REDIS_REFRESH_KEY = "REFRESH_UUID_"
+REDIS_REFRESH_KEY = "REFRESH_UUID"
+
+
+def get_refresh_key(user_id: int | None) -> str:
+    """
+    获取刷新令牌的 Redis Key
+
+    :param user_id: 用户ID
+    :return: Redis 查询 刷新令牌的 Key
+    """
+    return f"{REDIS_REFRESH_KEY}_{user_id}"
 
 
 def get_public_key() -> str:
@@ -89,7 +99,7 @@ async def create_token(user: UserTable) -> AccessTokenResponse:
     refresh_user_info = JWTRefreshTokenData(userId=user.id, uuid=_uuid)
     _refresh_token = jwt.create_refresh_token(user=refresh_user_info, expires_delta=expires_delta)
 
-    redis_value = RedisData(key=f"{REDIS_REFRESH_KEY}{1}", value=_uuid, ttl=expires_delta)
+    redis_value = RedisData(key=get_refresh_key(user.id), value=_uuid, ttl=expires_delta)
     await cache.set_redis_key(redis_value)
 
     return AccessTokenResponse(accessToken=token, refreshToken=_refresh_token)
@@ -106,7 +116,7 @@ async def refresh_token(token: str) -> AccessTokenResponse:
 
     _refresh_token = await parse_jwt_refresh_token(token=token)
 
-    redis_key = await cache.get_by_key(key=f"{REDIS_REFRESH_KEY}{_refresh_token.userId}")
+    redis_key = await cache.get_by_key(key=get_refresh_key(_refresh_token.userId))
 
     if redis_key != _refresh_token.uuid:
         raise RefreshTokenNotValid()
@@ -451,7 +461,7 @@ async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResp
     model_key="id",
     identifier=database.UniqueDetails(message="标识符"),
 )
-async def edit_role(*, role_id: int, name: str, identifier: str, identifier_list: list[str]) -> RoleInfoResponse:
+async def edit_role(*, role_id: int, name: str, describe: str, identifier_list: list[str]) -> RoleInfoResponse:
     """
     创建/修改一个角色信息
 
@@ -459,20 +469,20 @@ async def edit_role(*, role_id: int, name: str, identifier: str, identifier_list
 
     :param role_id: 角色 ID（如果提供，则视为更新）
     :param name: 角色名称
-    :param identifier: 角色标识符
+    :param describe: 角色描述
     :param identifier_list: 此角色绑定的权限菜单标识符列表
     :return: 角色的响应对象
     """
     if role_id:
         role: RoleInfoResponse = await database.select(select(RoleTable).where(RoleTable.id == role_id), nullable=False)
         role.name = name
-        role.identifier = identifier
+        role.identifier = describe
         role.identifierList = identifier_list
         return await database.update(role)
 
     return await database.insert(
         RoleTable,
-        RoleCreate(name=name, identifier=identifier, identifierList=identifier_list),
+        RoleCreate(name=name, identifier=describe, identifierList=identifier_list),
     )
 
 
@@ -488,12 +498,7 @@ async def get_role_list(page: int, size: int, *, keyword: str = "") -> list[Role
     :return: 角色信息的列表
     """
     return await database.pagination(
-        select(RoleTable).where(
-            or_(
-                database.like(field=RoleTable.name, keyword=keyword),
-                database.like(field=RoleTable.identifier, keyword=keyword),
-            )
-        ),
+        select(RoleTable).where(database.like(field=RoleTable.name, keyword=keyword)),
         page=page,
         size=size,
     )

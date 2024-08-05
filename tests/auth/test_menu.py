@@ -60,10 +60,10 @@ async def test_get_menu_list(client: AsyncClient, session: AsyncSession, databas
 
 
 @pytest.mark.asyncio
-async def test_get_menu_list_identifier(
+async def test_get_menu_list_keyword(
     client: AsyncClient, session: AsyncSession, database_to_menu_scope: MenuDatabase
 ) -> None:
-    """测试 /menu/list 接口 identifier关键字查询"""
+    """测试 /menu/list 接口关键字查询"""
 
     db_menu = database_to_menu_scope.childrenMenu
     db_menu_json = db_menu.model_dump()
@@ -73,17 +73,6 @@ async def test_get_menu_list_identifier(
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_200_OK
     assert response.json()["data"] == [db_menu_json]
-
-
-@pytest.mark.asyncio
-async def test_get_menu_list_name(
-    client: AsyncClient, session: AsyncSession, database_to_menu_scope: MenuDatabase
-) -> None:
-    """测试 /menu/list 接口 name关键字查询"""
-
-    db_menu = database_to_menu_scope.childrenMenu
-    db_menu_json = db_menu.model_dump()
-    db_menu_json["children"] = []
 
     response = await client.post("/auth/menu/list", json={"keyword": db_menu.name})
     assert response.status_code == status.HTTP_200_OK
@@ -126,7 +115,7 @@ async def test_get_menu_list_node_keyword(
 
 
 @pytest.mark.asyncio
-async def test_add_menu_info(client: AsyncClient, session: AsyncSession):
+async def test_add_menu_info(client: AsyncClient, session: AsyncSession) -> None:
     """测试 /menu/edit 接口新增数据"""
 
     response = await client.put("/auth/menu/edit", json={"name": "test", "identifier": "test"})
@@ -156,7 +145,9 @@ async def test_add_menu_info_unique(
 
 
 @pytest.mark.asyncio
-async def test_update_menu_info(client: AsyncClient, session: AsyncSession, database_to_menu_scope: MenuDatabase):
+async def test_update_menu_info(
+    client: AsyncClient, session: AsyncSession, database_to_menu_scope: MenuDatabase
+) -> None:
     """测试 /menu/edit 接口修改数据"""
 
     response = await client.put(

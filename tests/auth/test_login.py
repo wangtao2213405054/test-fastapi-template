@@ -3,6 +3,7 @@
 # _description: 测试登录相关接口
 
 import uuid
+
 import pytest
 from fastapi import status
 from httpx import AsyncClient
@@ -27,8 +28,8 @@ async def test_login(
 ) -> None:
     """测试 /user/login 接口"""
 
-    from src.api.auth import service
     from src import cache
+    from src.api.auth import service
 
     async def fake_set_redis_key(*args, **kwargs) -> None:  # type: ignore
         ...
@@ -48,9 +49,9 @@ async def test_login(
 async def test_refresh_token(init: AsyncInit, client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
     """测试 /refresh/token 接口"""
 
+    from src import cache
     from src.api.auth.jwt import create_refresh_token
     from src.api.auth.models.types import JWTRefreshTokenData
-    from src import cache
 
     _uuid = str(uuid.uuid4())
 

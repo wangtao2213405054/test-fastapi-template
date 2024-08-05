@@ -175,7 +175,7 @@ async def role_edit(body: AuthEditRoleRequest) -> ResponseModel:
     await edit_role(
         role_id=body.id,
         name=body.name,
-        identifier=body.identifier,
+        describe=body.describe,
         identifier_list=body.menuIdentifierList,
     )
     return ResponseModel()

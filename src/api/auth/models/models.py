@@ -22,9 +22,10 @@ class IdentifierBase(GeneralBase):
     )  # 标识符
 
 
-class RoleBase(IdentifierBase):
+class RoleBase(GeneralBase):
     """角色数据模型"""
 
+    describe: str | None = Field(None, description="角色描述信息")
     identifierList: list[str] = Field([], sa_column=Column(JSON), description="权限菜单标识符列表")  # 标识符
 
 

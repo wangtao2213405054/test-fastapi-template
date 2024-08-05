@@ -58,7 +58,7 @@ class UserBaseRequest(CustomModel):
 
     name: str = Body(..., description="用户名称", min_length=2, max_length=128)
     email: EmailStr = Body(..., description="邮箱", min_length=6, max_length=128)
-    mobile: str = Body(..., description="手机号", min_length=11, max_length=11)
+    mobile: str = Body(..., description="手机号", min_length=11, max_length=11, examples=["18888888888"])
     avatarUrl: HttpUrl = Body(None, description="用户头像地址")
     status: bool = Body(True, description="在职状态")
     roleId: int = Body(None, description="所属的角色ID")
@@ -114,7 +114,7 @@ class AuthEditRoleRequest(CustomModel):
 
     id: int = Body(None, description="角色ID")
     name: str = Body(..., description="角色名称")
-    identifier: str = Body(..., description="角色标识符")
+    describe: str = Body(None, description="角色描述")
     menuIdentifierList: list[str] = Body(..., description="菜单权限标识符")
 
 
