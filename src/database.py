@@ -9,6 +9,7 @@ from typing import Any, Awaitable, Callable, Type, TypeVar
 from pydantic import BaseModel
 from sqlalchemy import BinaryExpression, MetaData
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.orm import joinedload, selectinload
 from sqlmodel import SQLModel, col
 from sqlmodel import select as _select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -134,6 +135,41 @@ def like(*, field: Any, keyword: str) -> BinaryExpression[bool]:
     :return:
     """
     return col(field).like(f"%{keyword if keyword else ""}%")
+
+
+def joined_load(*args: Any, **kwargs: Any) -> Any:
+    """
+    使用 SQL 的 JOIN 语句来一次性加载父对象和相关联的子对象。
+
+    它会通过 JOIN 操作将父对象和子对象的数据结合在一起，从而减少了对数据库的访问次数。
+
+    - 对于一对多和多对多关系，joined load 可以非常高效，因为它通过一个查询返回所有必要的数据。
+    - 当子对象数量非常大时，joined load 可能会导致查询结果的行数膨胀。
+
+    :param args:
+    :param kwargs:
+    :return:
+    """
+    return joinedload(*args, **kwargs)
+
+
+def select_in_load(*args: Any, recursion_depth: int | None = None) -> Any:
+    """
+    select in load 使用多个查询来加载父对象和相关联的子对象。
+
+    首先会执行一个查询来获取所有父对象，然后再执行另一个查询来获取所有相关的子对象。
+    这种方法会执行两个独立的查询，而不是一个复杂的 JOIN 查询。
+
+    - select in load 对于一对多和多对多关系，尤其是在子对象数量很大的情况下，
+        可能比 joined load 更高效，因为它避免了大结果集的问题。
+
+    - 它通常会生成较少的总结果行数，但会增加额外的查询。
+
+    :param args:
+    :param recursion_depth:
+    :return:
+    """
+    return selectinload(*args, recursion_depth=recursion_depth)
 
 
 async def select(sql: Select | SelectOfScalar, *, nullable: bool = True) -> T:

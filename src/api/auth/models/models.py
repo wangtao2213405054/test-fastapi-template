@@ -145,7 +145,7 @@ class UserBase(BaseModel):
     status: bool = Field(True, description="用户在职状态")  # 用户在职状态
     isAdmin: bool = Field(False, description="是否为超管")
     roleId: int | None = Field(None, foreign_key="test_role.id", description="角色ID")  # 角色ID
-    affiliationId: int = Field(default=None, foreign_key="test_affiliation.id", description="所属关系ID")  # 部门
+    affiliationId: int | None = Field(default=None, foreign_key="test_affiliation.id", description="所属关系ID")  # 部门
 
 
 class UserPassword(UserBase):

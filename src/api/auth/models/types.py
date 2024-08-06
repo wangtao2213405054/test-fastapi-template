@@ -17,7 +17,6 @@ class JWTData(CustomModel):
     """Token解析后的数据"""
 
     userId: int | None = Field(alias="sub")
-    isAdmin: bool = False
 
 
 class JWTRefreshTokenData(CustomModel):
@@ -59,10 +58,10 @@ class UserBaseRequest(CustomModel):
     name: str = Body(..., description="用户名称", min_length=2, max_length=128)
     email: EmailStr = Body(..., description="邮箱", min_length=6, max_length=128)
     mobile: str = Body(..., description="手机号", min_length=11, max_length=11, examples=["18888888888"])
-    avatarUrl: HttpUrl = Body(None, description="用户头像地址")
+    avatarUrl: HttpUrl | None = Body(None, description="用户头像地址")
     status: bool = Body(True, description="在职状态")
-    roleId: int = Body(None, description="所属的角色ID")
-    affiliationId: int = Body(..., description="用户所属的关系")
+    roleId: int | None = Body(None, description="所属的角色ID")
+    affiliationId: int | None = Body(None, description="用户所属的关系")
 
     # noinspection PyNestedDecorators
     @field_validator("mobile", mode="after")
@@ -103,7 +102,7 @@ class AuthGetMenuRequest(GeneralKeywordRequestModel):
 class AuthEditMenuRequest(CustomModel):
     """修改权限菜单请求体"""
 
-    id: int = Body(None, description="菜单ID")
+    id: int = Body(0, description="菜单ID")
     name: str = Body(..., description="菜单名称")
     identifier: str = Body(..., description="菜单标识符")
     nodeId: int = Body(0, description="所属节点ID")
@@ -112,9 +111,9 @@ class AuthEditMenuRequest(CustomModel):
 class AuthEditRoleRequest(CustomModel):
     """修改角色信息请求体"""
 
-    id: int = Body(None, description="角色ID")
+    id: int = Body(0, description="角色ID")
     name: str = Body(..., description="角色名称")
-    describe: str = Body(None, description="角色描述")
+    describe: str | None = Body(None, description="角色描述")
     menuIdentifierList: list[str] = Body([], description="菜单权限标识符")
 
 
@@ -125,7 +124,7 @@ class AuthGetRoleListRequest(GeneralKeywordPageRequestModel):
 class AuthEditAffiliationRequest(CustomModel):
     """修改/新增 所属关系的请求体"""
 
-    id: int = Body(None, description="所属关系ID")
+    id: int = Body(0, description="所属关系ID")
     name: str = Body(..., description="所属关系名称")
     nodeId: int = Body(0, description="所属节点ID")
 

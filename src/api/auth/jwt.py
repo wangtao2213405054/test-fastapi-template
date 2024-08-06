@@ -7,13 +7,16 @@ from typing import Annotated
 
 from authlib.jose import jwt
 from authlib.jose.errors import JoseError
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
+from sqlmodel import select
 
+from src import database
 from src.api.auth.config import auth_config
 from src.api.auth.exceptions import AuthorizationFailed, AuthRequired, InvalidToken, RefreshTokenNotValid
 from src.config import settings
 
+from .models.models import UserTable
 from .models.types import JWTData, JWTRefreshTokenData
 
 # OAuth2PasswordBearer 实例，用于从请求中提取 JWT Token
@@ -37,7 +40,6 @@ def create_access_token(
 
     payload = dict(
         sub=str(user.userId),
-        isAdmin=user.isAdmin,
         exp=datetime.datetime.now(datetime.UTC) + expires_delta,
     )
 
@@ -120,33 +122,29 @@ async def parse_jwt_user_data(
     return token
 
 
-async def parse_jwt_admin_data(
+async def validate_permission(
     token: Annotated[JWTData, Depends(parse_jwt_user_data)],
-) -> JWTData:
-    """
-    验证并返回解码后的 JWT 管理员数据。
-
-    :param token: 解码后的 JWT 数据对象。必须是管理员用户，否则会抛出 AuthorizationFailed 异常。
-    :return: 解码后的 JWT 数据对象。
-    :raises AuthorizationFailed: 当用户不是管理员或权限不足时。
-    """
-    if not token.isAdmin:
-        raise AuthorizationFailed()
-
-    return token
-
-
-async def validate_admin_access(
-    token: Annotated[JWTData, Depends(parse_jwt_user_data_optional)],
+    request: Request,
 ) -> None:
     """
-    验证管理员访问权限。
+    验证用户访问权限。
 
-    :param token: 解码后的 JWT 数据对象。必须是管理员用户，否则会抛出 AuthorizationFailed 异常。
-    :return: 无返回值。如果验证失败，会抛出 AuthorizationFailed 异常。
-    :raises AuthorizationFailed: 当用户不是管理员或权限不足时。
+    由于继承了 parse_jwt_user_data 函数，会优先对用户的 Token 进行校验。
+
+    校验逻辑: 如果用户不是管理员并且没有绑定角色信息或角色无此接口配置则抛出 AuthorizationFailed 异常。
+
+    :param token: 解码后的 JWT 数据对象。
+    :param request: 当前请求的对象
+    :return:
+    :raises AuthorizationFailed: 当用户不是管理员、无绑定角色信息或权限不足时。
     """
-    if token and token.isAdmin:
-        return
 
-    raise AuthorizationFailed()
+    uri = request.url.path.replace(settings.PREFIX, "")
+
+    user: UserTable = await database.select(
+        select(UserTable).options(database.joined_load(UserTable.role)).where(UserTable.id == token.userId),
+        nullable=False,
+    )
+
+    if not (user.isAdmin or (user.roleId and uri in user.role.identifierList)):
+        raise AuthorizationFailed()

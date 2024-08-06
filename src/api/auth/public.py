@@ -45,7 +45,7 @@ async def swagger_login(
     """
     user = await authenticate_user(form.username, form.password)
     return SwaggerToken(
-        access_token=jwt.create_access_token(user=JWTData(userId=user.id, isAdmin=user.isAdmin)),
+        access_token=jwt.create_access_token(user=JWTData(userId=user.id)),
         token_type="bearer",
     )
 

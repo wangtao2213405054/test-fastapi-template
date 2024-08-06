@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends
 from src.models.types import DeleteRequestModel, ResponseModel
 from src.websocketio import socket
 
-from .jwt import parse_jwt_user_data
+from .jwt import validate_permission
 from .models.models import (
     AffiliationInfoResponse,
     AffiliationListResponse,
@@ -45,7 +45,7 @@ from .service import (
     update_user,
 )
 
-router = APIRouter(prefix="/auth", dependencies=[Depends(parse_jwt_user_data)])
+router = APIRouter(prefix="/auth", dependencies=[Depends(validate_permission)])
 
 
 @router.post("/user/create")

@@ -91,7 +91,7 @@ async def create_token(user: UserTable) -> AccessTokenResponse:
     :return: Token and Refresh Token
     """
 
-    token_user_info = JWTData(userId=user.id, isAdmin=user.isAdmin)
+    token_user_info = JWTData(userId=user.id)
     token = jwt.create_access_token(user=token_user_info)
 
     _uuid = str(uuid.uuid4())
@@ -455,7 +455,7 @@ async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResp
     return menu_dict_list
 
 
-async def edit_role(*, role_id: int, name: str, describe: str, identifier_list: list[str]) -> RoleInfoResponse:
+async def edit_role(*, role_id: int, name: str, describe: str | None, identifier_list: list[str]) -> RoleInfoResponse:
     """
     创建/修改一个角色信息
 

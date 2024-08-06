@@ -106,7 +106,7 @@ async def client(session: AsyncSession, monkeypatch: pytest.MonkeyPatch) -> Asyn
     :return: AsyncGenerator[AsyncClient, None]: 一个异步生成器，生成 `AsyncClient` 实例。
     """
     from src import database
-    from src.api.auth.jwt import parse_jwt_user_data
+    from src.api.auth.jwt import validate_permission
     from src.config import settings
     from src.main import app
 
@@ -114,7 +114,7 @@ async def client(session: AsyncSession, monkeypatch: pytest.MonkeyPatch) -> Asyn
     monkeypatch.setattr(database, "get_session", lambda: session)
 
     # 覆盖 Fastapi 依赖项使其不验证 Token
-    app.dependency_overrides[parse_jwt_user_data] = lambda: None  # type: ignore
+    app.dependency_overrides[validate_permission] = lambda: None  # type: ignore
 
     transport = ASGITransport(app=app)  # type: ignore
 
