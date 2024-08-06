@@ -54,7 +54,7 @@ async def init(session: AsyncSession) -> AsyncInit:
     """
 
     from src.api.auth import security
-    from src.api.auth.models.models import AffiliationTable, UserCreate, UserTable
+    from src.api.auth.models import AffiliationTable, UserCreate, UserTable
 
     # 所属关系表
     affiliation = AffiliationTable(name="字节跳动")
@@ -118,5 +118,5 @@ async def client(session: AsyncSession, monkeypatch: pytest.MonkeyPatch) -> Asyn
 
     transport = ASGITransport(app=app)  # type: ignore
 
-    async with AsyncClient(transport=transport, base_url=f"https://{settings.PREFIX}") as client:
+    async with AsyncClient(transport=transport, base_url=f'https://{settings.PREFIX}') as client:
         yield client

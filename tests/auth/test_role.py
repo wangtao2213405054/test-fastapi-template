@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.api.auth.models.models import MenuTable, RoleTable
+from src.api.auth.models import MenuTable, RoleTable
 
 
 class RoleDatabase(BaseModel):

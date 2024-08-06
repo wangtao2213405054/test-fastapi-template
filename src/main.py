@@ -48,7 +48,7 @@ async def passive_exception_handler(_request: Request, exc: Exception) -> JSONRe
     uuid4 = uuid.uuid4()
 
     error_info = dict(error=str(exc), sign=str(uuid4), stack=traceback.format_exception(exc))
-    logging.exception(f"Exception ID: {uuid4}")
+    logging.exception(f'Exception ID: {uuid4}')
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
@@ -163,8 +163,8 @@ async def http_middleware(
     host = client.host if client else "暂无主机信息"
     port = client.port if client else "暂无端口信息"
     logging.info(f'Request Info: {host}:{port} - "{request.method} {request.url.path}"')
-    logging.debug(f"Request Headers: {request.headers.items()}")
-    logging.info(f"Request Body: {''.join(body.decode('utf-8').split())}")
+    logging.debug(f'Request Headers: {request.headers.items()}')
+    logging.info(f'Request Body: {"".join(body.decode("utf-8").split())}')
 
     # response
     response = await callback(request)
@@ -176,8 +176,8 @@ async def http_middleware(
     if isinstance(first_chunk, bytes):
         first_chunk = first_chunk.decode("utf-8")
 
-    logging.info(f"Response Body: {first_chunk}")
-    logging.info(f"Response Time: {round((time.time() - start_time) * 1000, 3)} ms")
+    logging.info(f'Response Body: {first_chunk}')
+    logging.info(f'Response Time: {round((time.time() - start_time) * 1000, 3)} ms')
 
     return response
 

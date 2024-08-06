@@ -51,7 +51,7 @@ async def test_refresh_token(init: AsyncInit, client: AsyncClient, monkeypatch: 
 
     from src import cache
     from src.api.auth.jwt import create_refresh_token
-    from src.api.auth.models.types import JWTRefreshTokenData
+    from src.api.auth.types import JWTRefreshTokenData
 
     _uuid = str(uuid.uuid4())
 

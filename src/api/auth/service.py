@@ -20,7 +20,7 @@ from src.utils import validate
 from .config import PRIVATE_KEY, PUBLIC_KEY, auth_config
 from .exceptions import InvalidPassword, InvalidUsername, RefreshTokenNotValid, StandardsPassword, WrongPassword
 from .jwt import parse_jwt_refresh_token, parse_jwt_user_data
-from .models.models import (
+from .models import (
     AffiliationCreate,
     AffiliationInfoResponse,
     AffiliationListResponse,
@@ -36,7 +36,7 @@ from .models.models import (
     UserResponse,
     UserTable,
 )
-from .models.types import AccessTokenResponse, JWTData, JWTRefreshTokenData
+from .types import AccessTokenResponse, JWTData, JWTRefreshTokenData
 from .security import check_password, decrypt_message, hash_password, serialize_key
 
 REDIS_REFRESH_KEY = "REFRESH_UUID"
@@ -49,7 +49,7 @@ def get_refresh_key(user_id: int | None) -> str:
     :param user_id: 用户ID
     :return: Redis 查询 刷新令牌的 Key
     """
-    return f"{REDIS_REFRESH_KEY}_{user_id}"
+    return f'{REDIS_REFRESH_KEY}_{user_id}'
 
 
 def get_public_key() -> str:
@@ -431,8 +431,8 @@ async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResp
 
     clause: list[ColumnElement[bool] | bool] = [
         or_(
-            database.like(field=MenuTable.name, keyword=f"%{keyword}%"),
-            database.like(field=MenuTable.identifier, keyword=f"%{keyword}%"),
+            database.like(field=MenuTable.name, keyword=f'%{keyword}%'),
+            database.like(field=MenuTable.identifier, keyword=f'%{keyword}%'),
         )
     ]
 

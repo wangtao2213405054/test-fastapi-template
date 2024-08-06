@@ -10,7 +10,7 @@ from src.models.types import DeleteRequestModel, ResponseModel
 from src.websocketio import socket
 
 from .jwt import validate_permission
-from .models.models import (
+from .models import (
     AffiliationInfoResponse,
     AffiliationListResponse,
     MenuInfoResponse,
@@ -18,7 +18,7 @@ from .models.models import (
     RoleInfoResponse,
     UserResponse,
 )
-from .models.types import (
+from .types import (
     AuthEditAffiliationRequest,
     AuthEditMenuRequest,
     AuthEditRoleRequest,

@@ -116,7 +116,7 @@ def unique_check(
                     error_message.append(message)
 
             if len(error_message):
-                raise DatabaseUniqueError(f"{"、".join(error_message)}已存在")
+                raise DatabaseUniqueError(f'{"、".join(error_message)}已存在')
 
             # 调用原始函数
             return await func(*args, **kwargs)
@@ -134,7 +134,7 @@ def like(*, field: Any, keyword: str) -> BinaryExpression[bool]:
     :param keyword: 关键字
     :return:
     """
-    return col(field).like(f"%{keyword if keyword else ""}%")
+    return col(field).like(f'%{keyword if keyword else ""}%')
 
 
 def joined_load(*args: Any, **kwargs: Any) -> Any:

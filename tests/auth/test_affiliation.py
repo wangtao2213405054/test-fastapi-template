@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.api.auth.models.models import AffiliationTable
+from src.api.auth.models import AffiliationTable
 
 
 class AffiliationDatabase(BaseModel):

@@ -40,7 +40,7 @@ db_driver = settings.DATABASE_URL.scheme
 db_driver_parts = db_driver.split("+")
 if len(db_driver_parts) > 1:
     # 非 Mysql 数据库请修改此部分内容, 采用了 mysql connector 连接方式
-    sync_scheme = f"{db_driver_parts[0].strip()}+mysqlconnector"
+    sync_scheme = f'{db_driver_parts[0].strip()}+mysqlconnector'
     DATABASE_URL = DATABASE_URL.replace(db_driver, sync_scheme)
 
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
