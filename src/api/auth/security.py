@@ -8,6 +8,7 @@ from typing import Tuple
 import bcrypt
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives.serialization import load_pem_public_key
 
 
 def generate_rsa_key_pair() -> Tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
@@ -54,6 +55,17 @@ def serialize_key(key: rsa.RSAPublicKey | rsa.RSAPrivateKey) -> bytes:
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
+
+
+def decrypt_pem(pem: str) -> rsa.RSAPublicKey | rsa.RSAPrivateKey:
+    """
+    将 PEM 格式秘钥转换为 RSA 秘钥
+
+    :param pem: 序列化后的 PEM 格式密钥
+
+    :return: RSA 秘钥
+    """
+    return load_pem_public_key(pem.encode("utf-8"))
 
 
 def encrypt_message(public_key: rsa.RSAPublicKey, message: str) -> str:

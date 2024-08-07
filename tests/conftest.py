@@ -69,7 +69,7 @@ async def init(session: AsyncSession) -> AsyncInit:
         name="admin",
         username="admin",
         mobile="18888888888",
-        isAdmin=True,
+        isAdmin=False,
         affiliationId=db_affiliation.id,
     )
     db_user = UserTable.model_validate(user)
@@ -94,13 +94,18 @@ def load_env() -> None:
 
 
 @pytest_asyncio.fixture
-async def client(session: AsyncSession, monkeypatch: pytest.MonkeyPatch) -> AsyncGenerator[AsyncClient, None]:
+async def client(
+    request: pytest.FixtureRequest, session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> AsyncGenerator[AsyncClient, None]:
     """
     Fixture 用于创建一个 `AsyncClient` 实例，以便进行 HTTP 请求。
 
     这个 fixture 设置了一个 `AsyncClient` 实例，指定了基础 URL 和 应用，
     并将其提供给测试函数。它会确保在测试完成后客户端被正确关闭。
 
+    如果在测试中需要其验证 Token 及权限则可使用 @pytest.mark.parametrize("client", [True], indirect=True) 装饰器
+
+    :param request: <FixtureRequest> 对象
     :param session: 内存数据库 session 信息
     :param monkeypatch: 用于在测试中临时替换函数
     :return: AsyncGenerator[AsyncClient, None]: 一个异步生成器，生成 `AsyncClient` 实例。
@@ -114,9 +119,11 @@ async def client(session: AsyncSession, monkeypatch: pytest.MonkeyPatch) -> Asyn
     monkeypatch.setattr(database, "get_session", lambda: session)
 
     # 覆盖 Fastapi 依赖项使其不验证 Token
-    app.dependency_overrides[validate_permission] = lambda: None  # type: ignore
+    app.dependency_overrides[validate_permission] = (  # type: ignore
+        lambda: None if not hasattr(request, "param") else validate_permission
+    )
 
     transport = ASGITransport(app=app)  # type: ignore
 
-    async with AsyncClient(transport=transport, base_url=f'https://{settings.PREFIX}') as client:
+    async with AsyncClient(transport=transport, base_url=f"https://{settings.PREFIX}") as client:
         yield client

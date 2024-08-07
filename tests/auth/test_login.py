@@ -70,3 +70,54 @@ async def test_refresh_token(init: AsyncInit, client: AsyncClient, monkeypatch: 
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_200_OK
+
+
+def create_token(client: AsyncClient, init: AsyncInit):
+    """将 Token 信息更新到 client"""
+
+    from src.api.auth.jwt import create_access_token
+    from src.api.auth.types import JWTData
+
+    token = create_access_token(user=JWTData(userId=init.user.id))
+    client.headers.update({"Authorization": f"Bearer {token}"})
+
+    return client
+
+
+@pytest.mark.parametrize("client", [True], indirect=True)
+@pytest.mark.asyncio
+async def test_user_info(client: AsyncClient, init: AsyncInit) -> None:
+    """测试 /user/info 接口"""
+
+    from src.api.auth.models import UserResponse
+
+    client = create_token(client, init)
+    response = await client.get("/auth/user/info")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["code"] == status.HTTP_200_OK
+    assert response.json()["data"] == UserResponse(**init.user.model_dump()).model_dump()
+
+
+@pytest.mark.parametrize("client", [True], indirect=True)
+@pytest.mark.asyncio
+async def test_user_info_not_token(client: AsyncClient, init: AsyncInit) -> None:
+    """测试 /user/info 接口 验证Token"""
+
+    response = await client.get("/auth/user/info")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["code"] == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.parametrize("client", [True], indirect=True)
+@pytest.mark.asyncio
+async def test_user_info_not_permission(client: AsyncClient, init: AsyncInit) -> None:
+    """测试 /user/info 接口 验证Token"""
+
+    client = create_token(client, init)
+    response = await client.get("/auth/user/info")
+
+    print(response.json())
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["code"] == status.HTTP_403_FORBIDDEN
