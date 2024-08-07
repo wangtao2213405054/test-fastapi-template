@@ -20,7 +20,7 @@ from .models import UserTable
 from .types import JWTData, JWTRefreshTokenData
 
 # OAuth2PasswordBearer 实例，用于从请求中提取 JWT Token
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f'{settings.PREFIX}/auth/swagger/login', auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.PREFIX}/auth/swagger/login", auto_error=False)
 
 HEADER = dict(alg=auth_config.JWT_ALG, typ="JWT")
 
@@ -141,9 +141,8 @@ async def validate_permission(
 
     uri = request.url.path.replace(settings.PREFIX, "")
 
-    user: UserTable = await database.select(
-        select(UserTable).options(database.joined_load(UserTable.role)).where(UserTable.id == token.userId),
-        nullable=False,
+    user = await database.select(
+        select(UserTable).options(database.joined_load(UserTable.role)).where(UserTable.id == token.userId)
     )
 
     if not (user.isAdmin or (user.roleId and uri in user.role.identifierList)):

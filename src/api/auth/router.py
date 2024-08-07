@@ -18,17 +18,6 @@ from .models import (
     RoleInfoResponse,
     UserResponse,
 )
-from .types import (
-    AuthEditAffiliationRequest,
-    AuthEditMenuRequest,
-    AuthEditRoleRequest,
-    AuthGetAffiliationListRequest,
-    AuthGetMenuRequest,
-    AuthGetRoleListRequest,
-    CreateUserRequest,
-    UpdatePasswordRequest,
-    UpdateUserInfoRequest,
-)
 from .service import (
     create_user,
     delete_affiliation,
@@ -43,6 +32,17 @@ from .service import (
     get_role_list,
     update_password,
     update_user,
+)
+from .types import (
+    AuthEditAffiliationRequest,
+    AuthEditMenuRequest,
+    AuthEditRoleRequest,
+    AuthGetAffiliationListRequest,
+    AuthGetMenuRequest,
+    AuthGetRoleListRequest,
+    CreateUserRequest,
+    UpdatePasswordRequest,
+    UpdateUserInfoRequest,
 )
 
 router = APIRouter(prefix="/auth", dependencies=[Depends(validate_permission)])
@@ -64,6 +64,8 @@ async def user_edit(body: CreateUserRequest) -> ResponseModel[UserResponse]:
         mobile=body.mobile,
         password=body.password,
         affiliation_id=body.affiliationId,
+        role_id=body.roleId,
+        avatar=body.avatarUrl,
     )
     return ResponseModel(data=user)
 

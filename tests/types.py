@@ -4,7 +4,7 @@
 
 from pydantic import BaseModel
 
-from src.api.auth.models import AffiliationTable, UserTable
+from src.api.auth.models import AffiliationTable, UserTable, RoleTable
 
 
 class AsyncInit(BaseModel):
@@ -12,3 +12,4 @@ class AsyncInit(BaseModel):
 
     affiliation: AffiliationTable
     user: UserTable
+    role: RoleTable

@@ -54,12 +54,18 @@ async def init(session: AsyncSession) -> AsyncInit:
     """
 
     from src.api.auth import security
-    from src.api.auth.models import AffiliationTable, UserCreate, UserTable
+    from src.api.auth.models import AffiliationTable, UserCreate, UserTable, RoleTable
 
     # 所属关系表
     affiliation = AffiliationTable(name="字节跳动")
     db_affiliation = AffiliationTable.model_validate(affiliation)
     session.add(db_affiliation)
+    await session.commit()
+
+    # 角色
+    role = RoleTable(name="超级管理员")
+    db_role = RoleTable.model_validate(role)
+    session.add(db_role)
     await session.commit()
 
     # 用户表
@@ -69,14 +75,14 @@ async def init(session: AsyncSession) -> AsyncInit:
         name="admin",
         username="admin",
         mobile="18888888888",
-        isAdmin=False,
+        isAdmin=True,
         affiliationId=db_affiliation.id,
     )
     db_user = UserTable.model_validate(user)
     session.add(db_user)
     await session.commit()
 
-    init_database = AsyncInit(affiliation=db_affiliation, user=db_user)
+    init_database = AsyncInit(affiliation=db_affiliation, user=db_user, role=db_role)
 
     return init_database
 
@@ -119,9 +125,7 @@ async def client(
     monkeypatch.setattr(database, "get_session", lambda: session)
 
     # 覆盖 Fastapi 依赖项使其不验证 Token
-    app.dependency_overrides[validate_permission] = (  # type: ignore
-        lambda: None if not hasattr(request, "param") else validate_permission
-    )
+    app.dependency_overrides[validate_permission] = lambda: None  # type: ignore
 
     transport = ASGITransport(app=app)  # type: ignore
 

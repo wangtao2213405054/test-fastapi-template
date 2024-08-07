@@ -36,8 +36,8 @@ from .models import (
     UserResponse,
     UserTable,
 )
-from .types import AccessTokenResponse, JWTData, JWTRefreshTokenData
 from .security import check_password, decrypt_message, hash_password, serialize_key
+from .types import AccessTokenResponse, JWTData, JWTRefreshTokenData
 
 REDIS_REFRESH_KEY = "REFRESH_UUID"
 
@@ -49,7 +49,7 @@ def get_refresh_key(user_id: int | None) -> str:
     :param user_id: 用户ID
     :return: Redis 查询 刷新令牌的 Key
     """
-    return f'{REDIS_REFRESH_KEY}_{user_id}'
+    return f"{REDIS_REFRESH_KEY}_{user_id}"
 
 
 def get_public_key() -> str:
@@ -121,9 +121,9 @@ async def refresh_token(token: str) -> AccessTokenResponse:
     if redis_key != _refresh_token.uuid:
         raise RefreshTokenNotValid()
 
-    user: UserTable = await database.select(select(UserTable).where(UserTable.id == _refresh_token.userId))
-    response = await create_token(user)
+    user = await database.select(select(UserTable).where(UserTable.id == _refresh_token.userId))
 
+    response = await create_token(user)
     return response
 
 
@@ -184,7 +184,7 @@ async def create_user(
     username = utils.pinyin(name)
     password_hash: bytes = hash_password(decrypt_password(password))
 
-    user: UserResponse = await database.insert(
+    user = await database.insert(
         UserTable,
         UserCreate(
             name=name,
@@ -198,7 +198,7 @@ async def create_user(
         ),
     )
 
-    return user
+    return UserResponse(**user.model_dump())
 
 
 @database.unique_check(
@@ -234,7 +234,7 @@ async def update_user(
     :param role_id: 用户角色 ID（可选）
     :return: 更新后的用户响应对象
     """
-    user: UserTable = await database.select(select(UserTable).where(UserTable.id == user_id), nullable=False)
+    user = await database.select(select(UserTable).where(UserTable.id == user_id))
     user.name = name
     user.username = utils.pinyin(name)
     user.email = email
@@ -244,7 +244,9 @@ async def update_user(
     user.roleId = role_id
     user.affiliationId = affiliation_id
 
-    return await database.update(user)
+    update_user = await database.update(user)
+
+    return UserResponse(**update_user.model_dump())
 
 
 async def authenticate_user(username: str, password: str) -> UserTable:
@@ -259,7 +261,7 @@ async def authenticate_user(username: str, password: str) -> UserTable:
     :raises InvalidUsername: 用户名不存在时抛出
     :raises WrongPassword: 密码错误时抛出
     """
-    user: UserTable = await database.select(select(UserTable).where(UserTable.email == username))
+    user = await database.select(select(UserTable).where(UserTable.email == username), nullable=True)
 
     if not user:
         raise InvalidUsername()
@@ -281,7 +283,10 @@ async def get_current_user(
     :param user_data: 由 JWT 解析函数提供的用户数据
     :return: 当前用户的响应对象
     """
-    return await database.select(select(UserTable).where(UserTable.id == user_data.userId))
+
+    user = await database.select(select(UserTable).where(UserTable.id == user_data.userId))
+
+    return UserResponse(**user.model_dump())
 
 
 async def update_password(*, user_id: int, old_password: str, new_password: str) -> None:
@@ -298,7 +303,7 @@ async def update_password(*, user_id: int, old_password: str, new_password: str)
     """
     old_password = decrypt_password(old_password)
     password = hash_password(decrypt_password(new_password))
-    user: UserTable = await database.select(select(UserTable).where(UserTable.id == user_id))
+    user = await database.select(select(UserTable).where(UserTable.id == user_id))
 
     verify_password = check_password(old_password, user.password)
     if not verify_password:
@@ -320,14 +325,17 @@ async def edit_affiliation(*, affiliation_id: int, name: str, node_id: int) -> A
     :return: 所属关系的响应对象
     """
     if affiliation_id:
-        affiliation: AffiliationInfoResponse = await database.select(
-            select(AffiliationTable).where(AffiliationTable.id == affiliation_id)
-        )
+        affiliation = await database.select(select(AffiliationTable).where(AffiliationTable.id == affiliation_id))
         affiliation.name = name
         affiliation.nodeId = node_id
-        return await database.update(affiliation)
 
-    return await database.insert(AffiliationTable, AffiliationCreate(name=name, nodeId=node_id))
+        update_affiliation = await database.update(affiliation)
+
+        return AffiliationInfoResponse(**update_affiliation.model_dump())
+
+    add_affiliation = await database.insert(AffiliationTable, AffiliationCreate(name=name, nodeId=node_id))
+
+    return AffiliationInfoResponse(**add_affiliation.model_dump())
 
 
 async def delete_affiliation(*, affiliation_id: int) -> AffiliationInfoResponse:
@@ -339,7 +347,9 @@ async def delete_affiliation(*, affiliation_id: int) -> AffiliationInfoResponse:
     :param affiliation_id: 所属关系 ID
     :return: 删除的所属关系的响应对象
     """
-    return await database.delete(select(AffiliationTable).where(AffiliationTable.id == affiliation_id))
+    affiliation = await database.delete(select(AffiliationTable).where(AffiliationTable.id == affiliation_id))
+
+    return AffiliationInfoResponse(**affiliation.model_dump())
 
 
 async def get_affiliation_tree(*, node_id: int, keyword: str = "") -> list[AffiliationListResponse]:
@@ -360,9 +370,9 @@ async def get_affiliation_tree(*, node_id: int, keyword: str = "") -> list[Affil
         clause.append(AffiliationTable.nodeId == node_id)
 
     query = select(AffiliationTable).where(*clause)
-    affiliation_list: list[AffiliationInfoResponse] = await database.select_all(query)
+    affiliation_list = await database.select_all(query)
 
-    tasks = [get_affiliation_tree(node_id=item.id, keyword=keyword) for item in affiliation_list]
+    tasks = [get_affiliation_tree(node_id=item.id, keyword=keyword) for item in affiliation_list]  # type: ignore
     children_list = await asyncio.gather(*tasks)
 
     for item, children in zip(affiliation_list, children_list):
@@ -391,13 +401,16 @@ async def edit_menu(*, menu_id: int, name: str, identifier: str, node_id: int) -
     """
     # 修改
     if menu_id:
-        menu: MenuInfoResponse = await database.select(select(MenuTable).where(MenuTable.id == menu_id))
+        menu = await database.select(select(MenuTable).where(MenuTable.id == menu_id))
         menu.name = name
         menu.identifier = identifier
         menu.nodeId = node_id
-        return await database.update(menu)
 
-    return await database.insert(MenuTable, MenuCreate(name=name, identifier=identifier, nodeId=node_id))
+        update_menu = await database.update(menu)
+        return MenuInfoResponse(**update_menu.model_dump())
+
+    add_menu = await database.insert(MenuTable, MenuCreate(name=name, identifier=identifier, nodeId=node_id))
+    return MenuInfoResponse(**add_menu.model_dump())
 
 
 async def delete_menu(*, menu_id: int) -> MenuInfoResponse:
@@ -409,7 +422,9 @@ async def delete_menu(*, menu_id: int) -> MenuInfoResponse:
     :param menu_id: 权限菜单 ID
     :return: 删除的权限菜单的响应对象
     """
-    return await database.delete(select(MenuTable).where(MenuTable.id == menu_id))
+
+    menu = await database.delete(select(MenuTable).where(MenuTable.id == menu_id))
+    return MenuInfoResponse(**menu.model_dump())
 
 
 async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResponse]:
@@ -431,8 +446,8 @@ async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResp
 
     clause: list[ColumnElement[bool] | bool] = [
         or_(
-            database.like(field=MenuTable.name, keyword=f'%{keyword}%'),
-            database.like(field=MenuTable.identifier, keyword=f'%{keyword}%'),
+            database.like(field=MenuTable.name, keyword=f"%{keyword}%"),
+            database.like(field=MenuTable.identifier, keyword=f"%{keyword}%"),
         )
     ]
 
@@ -442,10 +457,10 @@ async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResp
 
     # 查询菜单列表
     query = select(MenuTable).where(*clause)
-    menu_list: list[MenuInfoResponse] = await database.select_all(query)
+    menu_list = await database.select_all(query)
 
     # 并行获取子菜单
-    tasks = [get_menu_tree(node_id=item.id, keyword=keyword) for item in menu_list]
+    tasks = [get_menu_tree(node_id=item.id, keyword=keyword) for item in menu_list]  # type: ignore
     children_list = await asyncio.gather(*tasks)
 
     # 构建响应列表
@@ -468,16 +483,19 @@ async def edit_role(*, role_id: int, name: str, describe: str | None, identifier
     :return: 角色的响应对象
     """
     if role_id:
-        role: RoleInfoResponse = await database.select(select(RoleTable).where(RoleTable.id == role_id), nullable=False)
+        role = await database.select(select(RoleTable).where(RoleTable.id == role_id))
         role.name = name
         role.describe = describe
         role.identifierList = identifier_list
-        return await database.update(role)
 
-    return await database.insert(
+        update_role = await database.update(role)
+        return RoleInfoResponse(**update_role.model_dump())
+
+    add_role = await database.insert(
         RoleTable,
         RoleCreate(name=name, describe=describe, identifierList=identifier_list),
     )
+    return RoleInfoResponse(**add_role.model_dump())
 
 
 async def get_role_list(page: int, size: int, *, keyword: str = "") -> list[RoleInfoResponse]:
@@ -491,11 +509,13 @@ async def get_role_list(page: int, size: int, *, keyword: str = "") -> list[Role
     :param keyword: 关键字查询（可选，匹配角色名称或标识符）
     :return: 角色信息的列表
     """
-    return await database.pagination(
+    role_list = await database.pagination(
         select(RoleTable).where(database.like(field=RoleTable.name, keyword=keyword)),
         page=page,
         size=size,
     )
+
+    return [RoleInfoResponse(**role.model_dump()) for role in role_list]
 
 
 async def delete_role(*, role_id: int) -> RoleInfoResponse:
@@ -507,4 +527,6 @@ async def delete_role(*, role_id: int) -> RoleInfoResponse:
     :param role_id: 角色 ID
     :return: 删除的角色信息的响应对象
     """
-    return await database.delete(select(RoleTable).where(RoleTable.id == role_id))
+
+    role = await database.delete(select(RoleTable).where(RoleTable.id == role_id))
+    return RoleInfoResponse(**role.model_dump())

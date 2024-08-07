@@ -59,7 +59,6 @@ class UserBaseRequest(CustomModel):
     email: EmailStr = Body(..., description="邮箱", min_length=6, max_length=128)
     mobile: str = Body(..., description="手机号", min_length=11, max_length=11, examples=["18888888888"])
     avatarUrl: HttpUrl | None = Body(None, description="用户头像地址")
-    status: bool = Body(True, description="在职状态")
     roleId: int | None = Body(None, description="所属的角色ID")
     affiliationId: int | None = Body(None, description="用户所属的关系")
 
@@ -83,12 +82,13 @@ class UpdateUserInfoRequest(UserBaseRequest):
     """更改用户信息请求模型"""
 
     id: int = Body(..., description="用户ID")
+    status: bool = Body(True, description="在职状态")
 
 
 class UpdatePasswordRequest(CustomModel):
     """修改密码的请求模型"""
 
-    id: int = Body(..., deprecated="用户ID")
+    id: int = Body(..., description="用户ID")
     oldPassword: str = Body(..., description="旧的密码")
     newPassword: str = Body(..., description="新的密码")
 

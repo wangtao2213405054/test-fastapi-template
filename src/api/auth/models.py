@@ -18,7 +18,7 @@ class IdentifierBase(GeneralBase):
     """带有标识符的模型"""
 
     identifier: str = Field(
-        index=True, unique=True, nullable=False, description="标识符", schema_extra={"examples": ["identifier"]}
+        index=True, unique=True, description="标识符", schema_extra={"examples": ["identifier"]}
     )  # 标识符
 
 
@@ -51,7 +51,7 @@ class RoleInfoResponse(RoleBase):
 class MenuBase(IdentifierBase):
     """权限菜单数据库模型"""
 
-    nodeId: int = Field(0, nullable=False, index=True, description="节点ID")  # 节点ID
+    nodeId: int = Field(0, index=True, description="节点ID")  # 节点ID
 
 
 class MenuTable(MenuBase, table=True):
@@ -77,6 +77,7 @@ class MenuListResponse(MenuBase):
     id: int
     # 使用了 Pydantic Field examples 将 children 添加到 OpenAPI 文档中
     children: list["MenuListResponse"] = PydanticField(
+        [],
         examples=[
             [
                 {
@@ -87,14 +88,14 @@ class MenuListResponse(MenuBase):
                     "children": [],
                 }
             ]
-        ]
+        ],
     )
 
 
 class AffiliationBase(GeneralBase):
     """归属数据库表"""
 
-    nodeId: int = Field(0, nullable=False, index=True, description="节点ID")  # 节点ID
+    nodeId: int = Field(0, index=True, description="节点ID")  # 节点ID
 
 
 class AffiliationTable(AffiliationBase, table=True):
@@ -121,6 +122,7 @@ class AffiliationListResponse(AffiliationBase):
 
     id: int
     children: list["AffiliationListResponse"] = PydanticField(
+        [],
         examples=[
             [
                 {
@@ -130,7 +132,7 @@ class AffiliationListResponse(AffiliationBase):
                     "children": [],
                 }
             ]
-        ]
+        ],
     )
 
 
@@ -139,8 +141,8 @@ class UserBase(BaseModel):
 
     name: str = Field(index=True, description="用户名称")  # 名称
     username: str = Field(index=True, description="用户名称拼音")
-    email: str = Field(index=True, nullable=False, unique=True, description="邮箱")  # 邮箱 不可重复
-    mobile: str = Field(index=True, nullable=False, unique=True, description="手机号")  # 手机号 不可重复
+    email: str = Field(index=True, unique=True, description="邮箱")  # 邮箱 不可重复
+    mobile: str = Field(index=True, unique=True, description="手机号")  # 手机号 不可重复
     avatarUrl: str | None = Field(None, description="头像")  # 头像
     status: bool = Field(True, description="用户在职状态")  # 用户在职状态
     isAdmin: bool = Field(False, description="是否为超管")

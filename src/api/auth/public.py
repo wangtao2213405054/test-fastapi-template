@@ -11,8 +11,8 @@ from src.api.auth import jwt
 from src.config import debug
 from src.models.types import ResponseModel
 
-from .types import AccessTokenResponse, AuthLoginRequest, JWTData, RefreshTokenRequest, SwaggerToken
 from .service import authenticate_user, get_public_key, login, refresh_token
+from .types import AccessTokenResponse, AuthLoginRequest, JWTData, RefreshTokenRequest, SwaggerToken
 
 router = APIRouter(prefix="/auth")
 

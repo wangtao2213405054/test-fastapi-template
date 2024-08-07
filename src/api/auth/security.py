@@ -8,6 +8,7 @@ from typing import Tuple
 import bcrypt
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives.asymmetric.types import PublicKeyTypes
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 
 
@@ -57,7 +58,7 @@ def serialize_key(key: rsa.RSAPublicKey | rsa.RSAPrivateKey) -> bytes:
         )
 
 
-def decrypt_pem(pem: str) -> rsa.RSAPublicKey | rsa.RSAPrivateKey:
+def decrypt_pem(pem: str) -> PublicKeyTypes:
     """
     将 PEM 格式秘钥转换为 RSA 秘钥
 

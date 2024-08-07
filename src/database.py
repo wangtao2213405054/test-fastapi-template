@@ -1,10 +1,11 @@
 # _author: Coke
 # _date: 2024/7/26 17:25
 # _description: 数据库操作相关函数
+
 import asyncio
 from datetime import datetime
 from functools import wraps
-from typing import Any, Awaitable, Callable, Type, TypeVar
+from typing import Any, Awaitable, Callable, Type, TypeVar, Union
 
 from pydantic import BaseModel
 from sqlalchemy import BinaryExpression, MetaData
@@ -19,7 +20,8 @@ from src.config import settings
 from src.constants import DB_NAMING_CONVENTION
 from src.exceptions import DatabaseNotFound, DatabaseUniqueError
 
-T = TypeVar("T", bound=SQLModel)
+_TSelectParam = TypeVar("_TSelectParam", bound=Any)
+
 
 # Mysql 数据库地址
 DATABASE_URL = str(settings.DATABASE_URL)
@@ -105,7 +107,7 @@ def unique_check(
                 if func_key and kwargs.get("func_key"):
                     clause.append(getattr(table, model_key) != kwargs.get("func_key"))  # type: ignore
 
-                tasks.append(select(_select(table).where(*clause)))
+                tasks.append(select(_select(table).where(*clause), nullable=True))
 
             task_result = await asyncio.gather(*tasks)
 
@@ -172,16 +174,20 @@ def select_in_load(*args: Any, recursion_depth: int | None = None) -> Any:
     return selectinload(*args, recursion_depth=recursion_depth)
 
 
-async def select(sql: Select | SelectOfScalar, *, nullable: bool = True) -> T:
+async def select(
+    statement: Union[Select[_TSelectParam], SelectOfScalar[_TSelectParam]],
+    *,
+    nullable: bool = False,
+) -> _TSelectParam:
     """
     查询单条数据, 如果未查询到则抛出 <NotFound> 异常
 
-    :param sql: 查询语句
-    :param nullable: 是否可以为空, 默认允许为空, 不允许为空后将抛出异常
+    :param statement: 查询语句
+    :param nullable: 是否可以为空, 默认不允许为空, 不允许为空后将抛出异常
     :return:
     """
     async with get_session() as session:
-        results = await session.exec(sql)
+        results = await session.exec(statement)
         data = results.first()
 
         if not nullable and not data:
@@ -190,21 +196,28 @@ async def select(sql: Select | SelectOfScalar, *, nullable: bool = True) -> T:
         return data  # type: ignore
 
 
-async def pagination(sql: Select | SelectOfScalar, *, page: int = 1, size: int = 20) -> list[T]:
+async def pagination(
+    statement: Union[Select[_TSelectParam], SelectOfScalar[_TSelectParam]],
+    *,
+    page: int = 1,
+    size: int = 20,
+) -> list[_TSelectParam]:
     """
     查询多条数据并进行分页
 
-    :param sql: 查询的 sql 语句
+    :param statement: 查询的 sql 语句
     :param page: 当前页
     :param size: 每页大小
     :return:
     """
     async with get_session() as session:
-        results = await session.exec(sql.offset(0 if page <= 1 else page - 1).limit(size))
+        results = await session.exec(statement.offset(0 if page <= 1 else page - 1).limit(size))
         return [result for result in results.all()]
 
 
-async def select_all(sql: Select | SelectOfScalar) -> list[T]:
+async def select_all(
+    sql: Union[Select[_TSelectParam], SelectOfScalar[_TSelectParam]],
+) -> list[_TSelectParam]:
     """
     根据 SQL 查询符合条件的全部数据
 
@@ -216,7 +229,7 @@ async def select_all(sql: Select | SelectOfScalar) -> list[T]:
         return [result for result in results.all()]
 
 
-async def insert(table: Type[SQLModel], model: SQLModel) -> T:
+async def insert(table: Type[_TSelectParam], model: _TSelectParam) -> _TSelectParam:
     """
     向表中添加一个数据
 
@@ -228,10 +241,10 @@ async def insert(table: Type[SQLModel], model: SQLModel) -> T:
         data = table.model_validate(model)
         session.add(data)
         await session.commit()
-        return data  # type: ignore
+        return data
 
 
-async def update(table: SQLModel) -> T:
+async def update(table: _TSelectParam) -> _TSelectParam:
     """
     向表中更新一条数据
 
@@ -245,18 +258,21 @@ async def update(table: SQLModel) -> T:
         session.add(table)
         await session.commit()
         await session.refresh(table)
-        return table  # type: ignore
+
+        return table
 
 
-async def delete(sql: Select | SelectOfScalar) -> T:
+async def delete(
+    statement: Union[Select[_TSelectParam], SelectOfScalar[_TSelectParam]],
+) -> _TSelectParam:
     """
     从表中删除一条数据
 
-    :param sql: 查询条件的 SQL 语句
+    :param statement: 查询条件的 SQL 语句
     :return:
     """
     async with get_session() as session:
-        results = await session.exec(sql)
+        results = await session.exec(statement)
         data = results.first()
 
         if not data:
@@ -265,4 +281,4 @@ async def delete(sql: Select | SelectOfScalar) -> T:
         await session.delete(data)
         await session.commit()
 
-        return data  # type: ignore
+        return data
