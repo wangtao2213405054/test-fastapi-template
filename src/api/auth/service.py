@@ -244,9 +244,9 @@ async def update_user(
     user.roleId = role_id
     user.affiliationId = affiliation_id
 
-    update_user = await database.update(user)
+    _update_user = await database.update(user)
 
-    return UserResponse(**update_user.model_dump())
+    return UserResponse(**_update_user.model_dump())
 
 
 async def authenticate_user(username: str, password: str) -> UserTable:

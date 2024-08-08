@@ -5,13 +5,13 @@
 import asyncio
 from datetime import datetime
 from functools import wraps
-from typing import Any, Awaitable, Callable, Type, TypeVar, Union
+from typing import Any, Awaitable, Callable, Type, TypeVar
 
 from pydantic import BaseModel
 from sqlalchemy import BinaryExpression, MetaData
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import joinedload, selectinload
-from sqlmodel import SQLModel, col
+from sqlmodel import col
 from sqlmodel import select as _select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.sql.expression import Select, SelectOfScalar
@@ -50,7 +50,7 @@ class UniqueDetails(BaseModel):
 
 
 def unique_check(
-    table: Type[SQLModel],
+    table: Type[_TSelectParam],
     *,
     func_key: str | None = None,
     model_key: str | None = None,
@@ -118,7 +118,7 @@ def unique_check(
                     error_message.append(message)
 
             if len(error_message):
-                raise DatabaseUniqueError(f'{"、".join(error_message)}已存在')
+                raise DatabaseUniqueError(f"{"、".join(error_message)}已存在")
 
             # 调用原始函数
             return await func(*args, **kwargs)
@@ -136,7 +136,7 @@ def like(*, field: Any, keyword: str) -> BinaryExpression[bool]:
     :param keyword: 关键字
     :return:
     """
-    return col(field).like(f'%{keyword if keyword else ""}%')
+    return col(field).like(f"%{keyword if keyword else ""}%")
 
 
 def joined_load(*args: Any, **kwargs: Any) -> Any:
@@ -175,7 +175,7 @@ def select_in_load(*args: Any, recursion_depth: int | None = None) -> Any:
 
 
 async def select(
-    statement: Union[Select[_TSelectParam], SelectOfScalar[_TSelectParam]],
+    statement: Select[_TSelectParam] | SelectOfScalar[_TSelectParam],
     *,
     nullable: bool = False,
 ) -> _TSelectParam:
@@ -197,7 +197,7 @@ async def select(
 
 
 async def pagination(
-    statement: Union[Select[_TSelectParam], SelectOfScalar[_TSelectParam]],
+    statement: Select[_TSelectParam] | SelectOfScalar[_TSelectParam],
     *,
     page: int = 1,
     size: int = 20,
@@ -216,7 +216,7 @@ async def pagination(
 
 
 async def select_all(
-    sql: Union[Select[_TSelectParam], SelectOfScalar[_TSelectParam]],
+    sql: Select[_TSelectParam] | SelectOfScalar[_TSelectParam],
 ) -> list[_TSelectParam]:
     """
     根据 SQL 查询符合条件的全部数据
@@ -263,7 +263,7 @@ async def update(table: _TSelectParam) -> _TSelectParam:
 
 
 async def delete(
-    statement: Union[Select[_TSelectParam], SelectOfScalar[_TSelectParam]],
+    statement: Select[_TSelectParam] | SelectOfScalar[_TSelectParam],
 ) -> _TSelectParam:
     """
     从表中删除一条数据
