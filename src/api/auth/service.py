@@ -284,9 +284,11 @@ async def get_current_user(
     :return: 当前用户的响应对象
     """
 
-    user = await database.select(select(UserTable).where(UserTable.id == user_data.userId))
-
-    return UserResponse(**user.model_dump())
+    user = await database.select(
+        select(UserTable).options(database.joined_load(UserTable.role)).where(UserTable.id == user_data.userId)
+    )
+    roles = user.role.identifierList if user.role else []
+    return UserResponse(**user.model_dump(), roles=roles)
 
 
 async def update_password(*, user_id: int, old_password: str, new_password: str) -> None:

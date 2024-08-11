@@ -7,7 +7,7 @@ from .database import (
     DATABASE_610_NOT_FOUND,
     DATABASE_611_UNIQUE,
 )
-from .http import HTTP_461_BAD_DATA
+from .http import HTTP_461_BAD_DATA, HTTP_471_INVALID_REFRESH_TOKEN
 
 __all__ = [
     "DATABASE_610_NOT_FOUND",
@@ -18,4 +18,5 @@ __all__ = [
     "DATABASE_603_ERROR_DELETE",
     "DATABASE_611_UNIQUE",
     "HTTP_461_BAD_DATA",
+    "HTTP_471_INVALID_REFRESH_TOKEN"
 ]

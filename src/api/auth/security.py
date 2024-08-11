@@ -6,7 +6,7 @@ import base64
 from typing import Tuple
 
 import bcrypt
-from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives.asymmetric.types import PublicKeyTypes
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
@@ -82,11 +82,7 @@ def encrypt_message(public_key: rsa.RSAPublicKey, message: str) -> str:
     """
     encrypted_message = public_key.encrypt(
         message.encode("utf-8"),  # 将消息转换为字节串
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),  # Mask Generation Function，使用 SHA256 哈希算法
-            algorithm=hashes.SHA256(),  # 使用 SHA256 哈希算法进行填充
-            label=None,
-        ),
+        padding.PKCS1v15(),
     )
 
     return base64.b64encode(encrypted_message).decode("utf-8")  # 使用 Base64 编码后返回字符串
@@ -105,11 +101,7 @@ def decrypt_message(private_key: rsa.RSAPrivateKey, encrypted_message: str) -> s
     """
     decrypted_message = private_key.decrypt(
         base64.b64decode(encrypted_message),  # 先解码 Base64，再进行解密
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),  # Mask Generation Function，使用 SHA256 哈希算法
-            algorithm=hashes.SHA256(),  # 使用 SHA256 哈希算法进行填充
-            label=None,
-        ),
+        padding.PKCS1v15(),
     )
     return decrypted_message.decode("utf-8")  # 将解密后的字节串转换为字符串
 

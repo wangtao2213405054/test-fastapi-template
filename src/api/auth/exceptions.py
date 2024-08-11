@@ -6,6 +6,7 @@ from fastapi import status
 
 from src.api.auth.constants import ErrorCode
 from src.exceptions import BadData, NotAuthenticated, PermissionDenied
+from src.exceptions.status import HTTP_471_INVALID_REFRESH_TOKEN
 
 
 class AuthRequired(NotAuthenticated):
@@ -35,7 +36,7 @@ class InvalidCredentials(NotAuthenticated):
 class RefreshTokenNotValid(NotAuthenticated):
     """刷新令牌无效"""
 
-    STATUS_CODE = status.HTTP_403_FORBIDDEN
+    STATUS_CODE = HTTP_471_INVALID_REFRESH_TOKEN
     DETAIL = ErrorCode.REFRESH_TOKEN_NOT_VALID
 
 
