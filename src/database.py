@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy import BinaryExpression, MetaData
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.sql.elements import ColumnElement
 from sqlmodel import col
 from sqlmodel import select as _select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -19,9 +20,10 @@ from sqlmodel.sql.expression import Select, SelectOfScalar
 from src.config import settings
 from src.constants import DB_NAMING_CONVENTION
 from src.exceptions import DatabaseNotFound, DatabaseUniqueError
+from src.models.types import Pagination
 
 _TSelectParam = TypeVar("_TSelectParam", bound=Any)
-
+_TSelectResponse = TypeVar("_TSelectResponse", bound=Any)
 
 # Mysql 数据库地址
 DATABASE_URL = str(settings.DATABASE_URL)
@@ -201,7 +203,7 @@ async def pagination(
     *,
     page: int = 1,
     size: int = 20,
-) -> list[_TSelectParam]:
+) -> Pagination[list[_TSelectParam]]:
     """
     查询多条数据并进行分页
 
@@ -212,7 +214,10 @@ async def pagination(
     """
     async with get_session() as session:
         results = await session.exec(statement.offset(0 if page <= 1 else page - 1).limit(size))
-        return [result for result in results.all()]
+        total_count = await session.exec(statement)
+        return Pagination(
+            page=page, pageSize=size, total=len(total_count.all()), records=[result for result in results.all()]
+        )
 
 
 async def select_all(
@@ -227,6 +232,82 @@ async def select_all(
     async with get_session() as session:
         results = await session.exec(sql)
         return [result for result in results.all()]
+
+
+async def select_tree(
+    table: Type[_TSelectParam],
+    response_model: Type[_TSelectResponse],
+    *,
+    node_id: int,
+    keyword: str = "",
+    keyword_map_list: list[str] | None = None,
+    recursion_id: str = "nodeId",
+    clause_list: list[ColumnElement[bool] | bool] | None = None,
+    page: int | None = None,
+    size: int | None = None,
+) -> list[_TSelectResponse] | Pagination[list[_TSelectResponse]]:
+    """
+    根据给定的 recursion_id 查询符合条件的树形结构数据。
+
+    该函数会根据 recursion_id 和可选的关键字，递归地查询符合条件的树形结构数据。可以通过提供关键字和字段列表来进行搜索，也可以选择分页查询。
+
+    :param table: 需要查询的数据库表类型。
+    :param response_model: 用于构建响应的模型类型。
+    :param node_id: 查询的节点 ID。
+    :param keyword: 搜索关键字，用于在字段中匹配数据。
+    :param keyword_map_list: 用于匹配的字段名称列表。如果提供了关键字，则会在这些字段中进行搜索。
+    :param recursion_id: 递归关系中的字段名，默认值为 "nodeId"。
+    :param clause_list: sql条件的列表
+    :param page: 分页的页码，默认为 None 表示不分页。
+    :param size: 分页的每页大小，默认为 None 表示不分页。
+
+    :return: 符合条件的树形结构数据列表，每个元素都是 `response_model` 的实例。
+    """
+
+    clause: list[ColumnElement[bool] | bool] = clause_list or []
+
+    if keyword_map_list and keyword:
+        for keyword_map in keyword_map_list:
+            clause.append(like(field=getattr(table, keyword_map), keyword=keyword))
+
+    if node_id or not keyword:
+        clause.append(getattr(table, recursion_id) == node_id)
+
+    query = _select(table).where(*clause)
+
+    # 获取数据
+    if isinstance(page, int) and isinstance(size, int):
+        page_data: Pagination[list[_TSelectResponse]] | None = await pagination(query, page=page, size=size)
+        tree_list = page_data.records if page_data is not None else []
+    else:
+        tree_list = await select_all(query)
+        page_data = None
+
+    # 获取子树
+    tasks = [
+        select_tree(
+            table,
+            response_model,
+            node_id=item.id,
+            keyword=keyword,
+            keyword_map_list=keyword_map_list,
+            recursion_id=recursion_id,
+        )
+        for item in tree_list
+    ]
+    children_list = await asyncio.gather(*tasks)
+
+    # 构建树形结构
+    tree_dict_list = [
+        response_model(children=children, **item.model_dump()) for item, children in zip(tree_list, children_list)
+    ]
+
+    # 如果分页，将数据设置到分页对象中
+    if page_data:
+        page_data.records = tree_dict_list
+        return page_data
+
+    return tree_dict_list
 
 
 async def insert(table: Type[_TSelectParam], model: _TSelectParam) -> _TSelectParam:

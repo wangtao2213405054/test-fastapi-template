@@ -19,6 +19,7 @@ from sqlalchemy.exc import DatabaseError
 
 from src.api.auth.public import router as public_auth_router
 from src.api.auth.router import router as auth_router
+from src.api.manage.router import router as manage_router
 from src.cache import lifespan
 from src.config import app_configs, settings
 from src.exceptions import DetailedHTTPException, message
@@ -190,3 +191,5 @@ if settings.ENVIRONMENT.is_deployed:
 # 路由注册区域
 app.include_router(public_auth_router, prefix=settings.PREFIX, tags=["认证"])
 app.include_router(auth_router, prefix=settings.PREFIX, tags=["认证"])
+
+app.include_router(manage_router, prefix=settings.PREFIX, tags=["系统管理"])

@@ -145,5 +145,5 @@ async def validate_permission(
         select(UserTable).options(database.joined_load(UserTable.role)).where(UserTable.id == token.userId)
     )
 
-    if not (user.isAdmin or (user.roleId and uri in user.role.identifierList)):
+    if not (user.isAdmin or (user.roleId and user.role and uri in user.role.identifierList)):
         raise AuthorizationFailed()

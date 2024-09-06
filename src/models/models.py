@@ -33,5 +33,6 @@ class BaseModel(SQLModel):
 
     model_config = ConfigDict(
         from_attributes=True,
+        populate_by_name=True,
         arbitrary_types_allowed=True,  # 允许使用字符串类型前向引用, 即递归调用
     )  # type: ignore

@@ -48,50 +48,6 @@ class RoleInfoResponse(RoleBase):
     id: int
 
 
-class MenuBase(IdentifierBase):
-    """权限菜单数据库模型"""
-
-    nodeId: int = Field(0, index=True, description="节点ID")  # 节点ID
-
-
-class MenuTable(MenuBase, table=True):
-    """菜单数据库模型表"""
-
-    __tablename__ = "test_menu"
-    id: int | None = Field(None, primary_key=True)
-
-
-class MenuCreate(MenuBase):
-    """用于创建新的菜单实例"""
-
-
-class MenuInfoResponse(MenuBase):
-    """菜单响应体"""
-
-    id: int
-
-
-class MenuListResponse(MenuBase):
-    """菜单列表响应体"""
-
-    id: int
-    # 使用了 Pydantic Field examples 将 children 添加到 OpenAPI 文档中
-    children: list["MenuListResponse"] = PydanticField(
-        [],
-        examples=[
-            [
-                {
-                    "id": 2,
-                    "name": "name",
-                    "identifier": "identifier",
-                    "nodeId": 1,
-                    "children": [],
-                }
-            ]
-        ],
-    )
-
-
 class AffiliationBase(GeneralBase):
     """归属数据库表"""
 

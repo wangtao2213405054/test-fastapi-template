@@ -2,19 +2,17 @@
 # _date: 2024/7/26 14:20
 # _description: Auth 验证相关的服务器业务逻辑
 
-import asyncio
 import datetime
 import logging
 import uuid
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy.sql.elements import ColumnElement
-from sqlmodel import or_, select
+from sqlmodel import select
 
 from src import cache, database, utils
 from src.api.auth import jwt
-from src.models.types import RedisData
+from src.models.types import Pagination, RedisData
 from src.utils import validate
 
 from .config import PRIVATE_KEY, PUBLIC_KEY, auth_config
@@ -25,10 +23,6 @@ from .models import (
     AffiliationInfoResponse,
     AffiliationListResponse,
     AffiliationTable,
-    MenuCreate,
-    MenuInfoResponse,
-    MenuListResponse,
-    MenuTable,
     RoleCreate,
     RoleInfoResponse,
     RoleTable,
@@ -364,112 +358,12 @@ async def get_affiliation_tree(*, node_id: int, keyword: str = "") -> list[Affil
     :param keyword: 关键字查询（可选）
     :return: 所有所属关系的列表
     """
-    affiliation_dict_list: list[AffiliationListResponse] = []
 
-    clause: list[ColumnElement[bool] | bool] = [database.like(field=AffiliationTable.name, keyword=keyword)]
+    affiliation_dict_list = await database.select_tree(
+        AffiliationTable, AffiliationListResponse, node_id=node_id, keyword_map_list=["name"], keyword=keyword
+    )
 
-    if node_id or not keyword:
-        clause.append(AffiliationTable.nodeId == node_id)
-
-    query = select(AffiliationTable).where(*clause)
-    affiliation_list = await database.select_all(query)
-
-    tasks = [get_affiliation_tree(node_id=item.id, keyword=keyword) for item in affiliation_list]  # type: ignore
-    children_list = await asyncio.gather(*tasks)
-
-    for item, children in zip(affiliation_list, children_list):
-        affiliation_dict_list.append(AffiliationListResponse(children=children, **item.model_dump()))
-
-    return affiliation_dict_list
-
-
-@database.unique_check(
-    MenuTable,
-    func_key="menu_id",
-    model_key="id",
-    identifier=database.UniqueDetails(message="标识符"),
-)
-async def edit_menu(*, menu_id: int, name: str, identifier: str, node_id: int) -> MenuInfoResponse:
-    """
-    创建/更新一个权限菜单
-
-    该函数根据 `menu_id` 判断是创建新的权限菜单还是更新现有的菜单。
-
-    :param menu_id: 权限菜单 ID（如果提供，则视为更新）
-    :param name: 菜单名称
-    :param identifier: 菜单标识符
-    :param node_id: 节点 ID
-    :return: 权限菜单的响应对象
-    """
-    # 修改
-    if menu_id:
-        menu = await database.select(select(MenuTable).where(MenuTable.id == menu_id))
-        menu.name = name
-        menu.identifier = identifier
-        menu.nodeId = node_id
-
-        update_menu = await database.update(menu)
-        return MenuInfoResponse(**update_menu.model_dump())
-
-    add_menu = await database.insert(MenuTable, MenuCreate(name=name, identifier=identifier, nodeId=node_id))
-    return MenuInfoResponse(**add_menu.model_dump())
-
-
-async def delete_menu(*, menu_id: int) -> MenuInfoResponse:
-    """
-    删除一个权限菜单
-
-    该函数根据 `menu_id` 删除指定的权限菜单。
-
-    :param menu_id: 权限菜单 ID
-    :return: 删除的权限菜单的响应对象
-    """
-
-    menu = await database.delete(select(MenuTable).where(MenuTable.id == menu_id))
-    return MenuInfoResponse(**menu.model_dump())
-
-
-async def get_menu_tree(*, node_id: int, keyword: str = "") -> list[MenuListResponse]:
-    """
-    递归遍历所有子菜单信息
-
-    该函数递归地获取从指定节点开始的所有子菜单，并根据 `keyword` 进行关键字匹配。
-
-    条件构成:
-        - 如果 keyword 不为空，则添加模糊匹配条件。
-        - 如果 node_id 不为空，或者 keyword 为空，则添加 node_id 的条件。
-        - 如果当 keyword 和 node_id 都为空时，仍需要通过 node_id 进行过滤。
-
-    :param node_id: 开始节点 ID
-    :param keyword: 关键字匹配（可选）
-    :return: 所有子菜单的列表
-    """
-    menu_dict_list: list[MenuListResponse] = []
-
-    clause: list[ColumnElement[bool] | bool] = [
-        or_(
-            database.like(field=MenuTable.name, keyword=f"%{keyword}%"),
-            database.like(field=MenuTable.identifier, keyword=f"%{keyword}%"),
-        )
-    ]
-
-    # 如果 keyword 为空 或 node_id 为真将 node_id 添加入 where 条件
-    if node_id or not keyword:
-        clause.append(MenuTable.nodeId == node_id)
-
-    # 查询菜单列表
-    query = select(MenuTable).where(*clause)
-    menu_list = await database.select_all(query)
-
-    # 并行获取子菜单
-    tasks = [get_menu_tree(node_id=item.id, keyword=keyword) for item in menu_list]  # type: ignore
-    children_list = await asyncio.gather(*tasks)
-
-    # 构建响应列表
-    for item, children in zip(menu_list, children_list):
-        menu_dict_list.append(MenuListResponse(children=children, **item.model_dump()))
-
-    return menu_dict_list
+    return affiliation_dict_list  # type: ignore
 
 
 async def edit_role(*, role_id: int, name: str, describe: str | None, identifier_list: list[str]) -> RoleInfoResponse:
@@ -500,7 +394,7 @@ async def edit_role(*, role_id: int, name: str, describe: str | None, identifier
     return RoleInfoResponse(**add_role.model_dump())
 
 
-async def get_role_list(page: int, size: int, *, keyword: str = "") -> list[RoleInfoResponse]:
+async def get_role_list(page: int, size: int, *, keyword: str = "") -> Pagination[list[RoleInfoResponse]]:
     """
     获取角色信息列表
 
@@ -511,13 +405,18 @@ async def get_role_list(page: int, size: int, *, keyword: str = "") -> list[Role
     :param keyword: 关键字查询（可选，匹配角色名称或标识符）
     :return: 角色信息的列表
     """
-    role_list = await database.pagination(
+    role_pagination = await database.pagination(
         select(RoleTable).where(database.like(field=RoleTable.name, keyword=keyword)),
         page=page,
         size=size,
     )
 
-    return [RoleInfoResponse(**role.model_dump()) for role in role_list]
+    return Pagination(
+        page=role_pagination.page,
+        pageSize=role_pagination.pageSize,
+        records=[RoleInfoResponse(**role.model_dump()) for role in role_pagination.records],
+        total=role_pagination.total,
+    )
 
 
 async def delete_role(*, role_id: int) -> RoleInfoResponse:

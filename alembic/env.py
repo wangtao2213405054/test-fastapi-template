@@ -16,10 +16,10 @@ from sqlmodel import SQLModel
 # 需要导入要创建的模型信息, 由 Alembic 自动创建对应的数据表
 from src.api.auth.models import (
     UserTable,
-    MenuTable,
     RoleTable,
     AffiliationTable
 )
+from src.api.manage.models import MenuTable
 
 # 这是 Alembic 配置对象，它提供了对所使用的 .ini 文件中值的访问
 config = context.config

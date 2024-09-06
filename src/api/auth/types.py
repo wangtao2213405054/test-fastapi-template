@@ -93,21 +93,6 @@ class UpdatePasswordRequest(CustomModel):
     newPassword: str = Body(..., description="新的密码")
 
 
-class AuthGetMenuRequest(GeneralKeywordRequestModel):
-    """获取权限菜单请求体"""
-
-    nodeId: int = Body(0, description="节点ID")
-
-
-class AuthEditMenuRequest(CustomModel):
-    """修改权限菜单请求体"""
-
-    id: int = Body(0, description="菜单ID")
-    name: str = Body(..., description="菜单名称")
-    identifier: str = Body(..., description="菜单标识符")
-    nodeId: int = Body(0, description="所属节点ID")
-
-
 class AuthEditRoleRequest(CustomModel):
     """修改角色信息请求体"""
 

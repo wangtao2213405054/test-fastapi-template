@@ -2,7 +2,6 @@
 # _date: 2024/7/27 15:41
 # _description: 用户认证相关异常
 
-from fastapi import status
 
 from src.api.auth.constants import ErrorCode
 from src.exceptions import BadData, NotAuthenticated, PermissionDenied

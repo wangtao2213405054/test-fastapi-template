@@ -6,39 +6,32 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends
 
-from src.models.types import DeleteRequestModel, ResponseModel
+from src.models.types import DeleteRequestModel, Pagination, ResponseModel
 from src.websocketio import socket
 
 from .jwt import validate_permission
 from .models import (
     AffiliationInfoResponse,
     AffiliationListResponse,
-    MenuInfoResponse,
-    MenuListResponse,
     RoleInfoResponse,
     UserResponse,
 )
 from .service import (
     create_user,
     delete_affiliation,
-    delete_menu,
     delete_role,
     edit_affiliation,
-    edit_menu,
     edit_role,
     get_affiliation_tree,
     get_current_user,
-    get_menu_tree,
     get_role_list,
     update_password,
     update_user,
 )
 from .types import (
     AuthEditAffiliationRequest,
-    AuthEditMenuRequest,
     AuthEditRoleRequest,
     AuthGetAffiliationListRequest,
-    AuthGetMenuRequest,
     AuthGetRoleListRequest,
     CreateUserRequest,
     UpdatePasswordRequest,
@@ -65,7 +58,7 @@ async def user_edit(body: CreateUserRequest) -> ResponseModel[UserResponse]:
         password=body.password,
         affiliation_id=body.affiliationId,
         role_id=body.roleId,
-        avatar=body.avatarUrl,
+        avatar=body.avatarUrl.unicode_string() if body.avatarUrl else None,
     )
     return ResponseModel(data=user)
 
@@ -122,48 +115,6 @@ async def user_info(
     return ResponseModel(data=user)
 
 
-@router.post("/menu/list")
-async def menu_list(body: AuthGetMenuRequest) -> ResponseModel[list[MenuListResponse]]:
-    """
-    获取权限菜单列表接口
-
-    获取指定节点的权限菜单列表，并可以通过关键字进行过滤。\f
-
-    :param body: 包含节点 ID 和关键字的 <AuthGetMenuRequest> 对象
-    :return: 包含菜单列表的 <ResponseModel> 对象
-    """
-    menus = await get_menu_tree(node_id=body.nodeId, keyword=body.keyword)
-    return ResponseModel(data=menus)
-
-
-@router.put("/menu/edit")
-async def menu_edit(body: AuthEditMenuRequest) -> ResponseModel[MenuInfoResponse]:
-    """
-    添加或更新权限菜单接口
-
-    根据提供的菜单 ID 更新菜单信息，如果 ID 不存在则创建新的菜单。\f
-
-    :param body: 包含菜单信息的 <AuthEditMenuRequest> 对象
-    :return: 包含更新后菜单信息的 <ResponseModel> 对象
-    """
-    menu = await edit_menu(menu_id=body.id, name=body.name, identifier=body.identifier, node_id=body.nodeId)
-    return ResponseModel(data=menu)
-
-
-@router.delete("/menu/delete")
-async def menu_delete(body: DeleteRequestModel) -> ResponseModel[MenuInfoResponse]:
-    """
-    删除权限菜单接口
-
-    根据菜单 ID 删除指定的权限菜单。\f
-
-    :param body: 包含菜单 ID 的 <DeleteRequestModel> 对象
-    :return: 包含被删除菜单信息的 <ResponseModel> 对象
-    """
-    menu = await delete_menu(menu_id=body.id)
-    return ResponseModel(data=menu)
-
-
 @router.put("/role/edit")
 async def role_edit(body: AuthEditRoleRequest) -> ResponseModel[RoleInfoResponse]:
     """
@@ -186,7 +137,7 @@ async def role_edit(body: AuthEditRoleRequest) -> ResponseModel[RoleInfoResponse
 @router.post("/role/list")
 async def role_list(
     body: AuthGetRoleListRequest,
-) -> ResponseModel[list[RoleInfoResponse]]:
+) -> ResponseModel[Pagination[list[RoleInfoResponse]]]:
     """
     获取角色列表接口
 

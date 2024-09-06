@@ -128,6 +128,13 @@ class ResponseModel(BaseModel, Generic[T]):
         self.ts = int(time())
 
 
+class Pagination(PageRequestModel, Generic[T]):
+    """分页的通用返回类型"""
+
+    total: int = Field(..., description="总数")
+    records: T = Field(..., description="返回的数据信息")
+
+
 class RedisData(CustomModel):
     """Redis 数据模型"""
 
