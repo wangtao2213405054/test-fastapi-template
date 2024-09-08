@@ -3,12 +3,13 @@
 # _description:
 
 from sqlmodel import select
+from sqlalchemy import or_
 
 from src import database
 from src.models.types import Pagination
 
 from .models import MenuCreate, MenuInfoResponse, MenuListResponse, MenuTable
-from .types import Query, SubPermission
+from .types import Query, SubPermission, MENU_ROUTE
 
 
 async def get_menu_tree(
@@ -116,9 +117,9 @@ async def edit_menu(
             "constant": constant,
             "fixedIndexInTab": fixed_index_in_tab,
             "homepage": homepage,
-            "query": query,
-            "buttons": buttons,
-            "interfaces": interfaces,
+            "query": [item.model_dump() for item in query],
+            "buttons": [item.model_dump() for item in buttons],
+            "interfaces": [item.model_dump() for item in interfaces],
         }
 
         for key, value in update_data.items():
@@ -158,7 +159,7 @@ async def edit_menu(
 
 async def delete_menu(*, menu_id: int) -> MenuInfoResponse:
     """
-    删除一个所属关系
+    删除一个菜单
 
     该函数根据 `menu_id` 删除指定的菜单。
 
@@ -168,3 +169,29 @@ async def delete_menu(*, menu_id: int) -> MenuInfoResponse:
     menu = await database.delete(select(MenuTable).where(MenuTable.id == menu_id))
 
     return MenuInfoResponse(**menu.model_dump())
+
+
+async def batch_delete_menu(*, menu_ids: list[int]) -> list[MenuInfoResponse]:
+    """
+    删除多个菜单
+
+    该函数根据 `menu_ids` 删除指定的菜单。
+
+    :param menu_ids: 菜单 ID 列表
+    :return: None
+    """
+
+    menu = await database.batch_delete(select(MenuTable).where(or_(*[MenuTable.id == _id for _id in menu_ids])))
+
+    return [MenuInfoResponse(**item.model_dump()) for item in menu]
+
+
+async def get_page_list() -> Pagination[list[str]]:
+    """
+    获取页面列表
+
+    :return: 页面列表
+    """
+    menu = await database.select_all(select(MenuTable.routeName).where(MenuTable.menuType == MENU_ROUTE))
+
+    return menu  # type: ignore

@@ -5,7 +5,7 @@
 import asyncio
 from datetime import datetime
 from functools import wraps
-from typing import Any, Awaitable, Callable, Type, TypeVar
+from typing import Any, Awaitable, Callable, Sequence, Type, TypeVar
 
 from pydantic import BaseModel
 from sqlalchemy import BinaryExpression, MetaData
@@ -28,7 +28,7 @@ _TSelectResponse = TypeVar("_TSelectResponse", bound=Any)
 # Mysql 数据库地址
 DATABASE_URL = str(settings.DATABASE_URL)
 
-engine = create_async_engine(DATABASE_URL, echo=settings.ENVIRONMENT.is_debug)
+engine = create_async_engine(DATABASE_URL, echo=settings.ENVIRONMENT.is_debug, pool_recycle=60)
 metadata = MetaData(naming_convention=DB_NAMING_CONVENTION)
 
 # 异步的数据库 session, 异步会话对象的工厂函数
@@ -106,8 +106,8 @@ def unique_check(
                 clause = [getattr(table, key) == kwargs.get(_key)]
 
                 # 只有当调用此装饰器的函数Key 为真时才添加此条件
-                if func_key and kwargs.get("func_key"):
-                    clause.append(getattr(table, model_key) != kwargs.get("func_key"))  # type: ignore
+                if func_key and kwargs.get(func_key):
+                    clause.append(getattr(table, model_key) != kwargs.get(func_key))  # type: ignore
 
                 tasks.append(select(_select(table).where(*clause), nullable=True))
 
@@ -360,6 +360,25 @@ async def delete(
             raise DatabaseNotFound()
 
         await session.delete(data)
+        await session.commit()
+
+        return data
+
+
+async def batch_delete(statement: Select[_TSelectParam] | SelectOfScalar[_TSelectParam]) -> Sequence[_TSelectParam]:
+    """
+    从表中批量删除一组数据
+
+    :param statement: 查询条件的 SQL 语句
+    :return:
+    """
+    async with get_session() as session:
+
+        results = await session.exec(statement)
+        data = results.all()
+
+        tasks = [session.delete(item) for item in data]
+        await asyncio.gather(*tasks)
         await session.commit()
 
         return data

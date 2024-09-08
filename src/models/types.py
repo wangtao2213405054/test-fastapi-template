@@ -115,6 +115,12 @@ class DeleteRequestModel(CustomModel):
     id: int = Field(..., description="要删除的数据ID")
 
 
+class BatchDeleteRequestModel(CustomModel):
+    """通用批量删除请求模型"""
+
+    ids: list[int] = Field(..., description="要删除的数据ID列表")
+
+
 class ResponseModel(BaseModel, Generic[T]):
     """接口通用返回模型"""
 

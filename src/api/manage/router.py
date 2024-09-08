@@ -5,10 +5,10 @@
 from fastapi import APIRouter, Depends
 
 from src.api.auth.jwt import validate_permission
-from src.models.types import DeleteRequestModel, Pagination, ResponseModel
+from src.models.types import DeleteRequestModel, Pagination, ResponseModel, BatchDeleteRequestModel
 
 from .models import MenuInfoResponse, MenuListResponse
-from .service import delete_menu, edit_menu, get_menu_tree
+from .service import delete_menu, edit_menu, get_menu_tree, batch_delete_menu, get_page_list
 from .types import ManageEditMenuRequest, ManageGetMenuListRequest
 
 router = APIRouter(prefix="/manage", dependencies=[Depends(validate_permission)])
@@ -80,3 +80,30 @@ async def menu_delete(body: DeleteRequestModel) -> ResponseModel[MenuInfoRespons
 
     menu = await delete_menu(menu_id=body.id)
     return ResponseModel(data=menu)
+
+
+@router.delete("/menu/batch/delete")
+async def menu_batch_delete(body: BatchDeleteRequestModel) -> ResponseModel[list[MenuInfoResponse]]:
+    """
+    批量删除菜单接口
+
+    根据菜单 ID 列表删除指定的菜单。\f
+
+    :param body: 包含菜单 ids 的 <DeleteRequestModel> 对象
+    :return:
+    """
+
+    menu = await batch_delete_menu(menu_ids=body.ids)
+    return ResponseModel(data=menu)
+
+
+@router.get("/page/all")
+async def page_all() -> ResponseModel[list[str]]:
+    """
+    获取当前所有的页面\f
+
+    :return:
+    """
+    page = await get_page_list()
+
+    return ResponseModel(data=page)
