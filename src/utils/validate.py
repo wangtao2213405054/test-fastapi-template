@@ -13,7 +13,7 @@ def password(value: str) -> bool:
     :return:
     """
 
-    password_pattern = re.compile(r"^(?=.*\d)(?=.*[!@#$%^&*])[\w!@#$%^&*]{6,128}$")
+    password_pattern = re.compile(r"^[a-zA-Z0-9]{6,18}$")
 
     return bool(re.match(password_pattern, value))
 
