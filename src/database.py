@@ -373,9 +373,11 @@ async def batch_delete(statement: Select[_TSelectParam] | SelectOfScalar[_TSelec
     :return:
     """
     async with get_session() as session:
-
         results = await session.exec(statement)
         data = results.all()
+
+        if not data:
+            raise DatabaseNotFound()
 
         tasks = [session.delete(item) for item in data]
         await asyncio.gather(*tasks)

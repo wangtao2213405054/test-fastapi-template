@@ -5,10 +5,10 @@
 from fastapi import APIRouter, Depends
 
 from src.api.auth.jwt import validate_permission
-from src.models.types import DeleteRequestModel, Pagination, ResponseModel, BatchDeleteRequestModel
+from src.models.types import BatchDeleteRequestModel, DeleteRequestModel, Pagination, ResponseModel
 
 from .models import MenuInfoResponse, MenuListResponse
-from .service import delete_menu, edit_menu, get_menu_tree, batch_delete_menu, get_page_list
+from .service import batch_delete_menu, delete_menu, edit_menu, get_menu_tree, get_page_list
 from .types import ManageEditMenuRequest, ManageGetMenuListRequest
 
 router = APIRouter(prefix="/manage", dependencies=[Depends(validate_permission)])
@@ -68,7 +68,7 @@ async def menu_edit(body: ManageEditMenuRequest) -> ResponseModel[MenuInfoRespon
 
 
 @router.delete("/menu/delete")
-async def menu_delete(body: DeleteRequestModel) -> ResponseModel[MenuInfoResponse]:
+async def menu_delete(body: DeleteRequestModel) -> ResponseModel[list[MenuInfoResponse]]:
     """
     删除菜单接口
 

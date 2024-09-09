@@ -2,14 +2,13 @@
 # _date: 2024/8/26 下午3:51
 # _description:
 
-from sqlmodel import select
-from sqlalchemy import or_
+from sqlmodel import select, or_
 
 from src import database
 from src.models.types import Pagination
 
 from .models import MenuCreate, MenuInfoResponse, MenuListResponse, MenuTable
-from .types import Query, SubPermission, MENU_ROUTE
+from .types import MENU_ROUTE, Query, SubPermission
 
 
 async def get_menu_tree(
@@ -157,23 +156,25 @@ async def edit_menu(
     return MenuInfoResponse(**add_menu.model_dump())
 
 
-async def delete_menu(*, menu_id: int) -> MenuInfoResponse:
+async def delete_menu(*, menu_id: int) -> list[MenuInfoResponse]:
     """
-    删除一个菜单
+    删除一个菜单及其子菜单
 
     该函数根据 `menu_id` 删除指定的菜单。
 
     :param menu_id: 菜单 ID
     :return: 删除的菜单的响应对象
     """
-    menu = await database.delete(select(MenuTable).where(MenuTable.id == menu_id))
+    menu = await database.batch_delete(
+        select(MenuTable).where(or_(MenuTable.id == menu_id, MenuTable.nodeId == menu_id))
+    )
 
-    return MenuInfoResponse(**menu.model_dump())
+    return [MenuInfoResponse(**item.model_dump()) for item in menu]
 
 
 async def batch_delete_menu(*, menu_ids: list[int]) -> list[MenuInfoResponse]:
     """
-    删除多个菜单
+    删除多个菜单及其子菜单
 
     该函数根据 `menu_ids` 删除指定的菜单。
 
@@ -181,7 +182,11 @@ async def batch_delete_menu(*, menu_ids: list[int]) -> list[MenuInfoResponse]:
     :return: None
     """
 
-    menu = await database.batch_delete(select(MenuTable).where(or_(*[MenuTable.id == _id for _id in menu_ids])))
+    menu = await database.batch_delete(
+        select(MenuTable).where(
+            or_(*[MenuTable.id == _id for _id in menu_ids], *[MenuTable.nodeId == _id for _id in menu_ids])
+        )
+    )
 
     return [MenuInfoResponse(**item.model_dump()) for item in menu]
 
