@@ -20,7 +20,7 @@ from .types import AuthLoginRequest, JWTData, RefreshTokenRequest
 router = APIRouter(prefix="/auth")
 
 
-@router.get("/public/key")
+@router.get("/getPublicKey")
 def user_public_key() -> ResponseModel[str]:
     """
     获取密码公钥接口
@@ -33,7 +33,7 @@ def user_public_key() -> ResponseModel[str]:
     return ResponseModel(data=public_key)
 
 
-@router.post("/swagger/login", deprecated=True, dependencies=[Depends(debug)])
+@router.post("/swaggerLogin", deprecated=True, dependencies=[Depends(debug)])
 async def swagger_login(
     form: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> SwaggerToken:
@@ -53,7 +53,7 @@ async def swagger_login(
     )
 
 
-@router.post("/user/login")
+@router.post("/userLogin")
 async def user_login(body: AuthLoginRequest) -> ResponseModel[AccessTokenResponse]:
     """
     用户登录接口
@@ -69,7 +69,7 @@ async def user_login(body: AuthLoginRequest) -> ResponseModel[AccessTokenRespons
     return ResponseModel(data=response)
 
 
-@router.post("/refresh/token")
+@router.post("/refreshToken")
 async def refresh_user_token(body: RefreshTokenRequest) -> ResponseModel[AccessTokenResponse]:
     """
     刷新用户令牌接口
@@ -84,7 +84,7 @@ async def refresh_user_token(body: RefreshTokenRequest) -> ResponseModel[AccessT
     return ResponseModel(data=response)
 
 
-@router.get("/user/info", dependencies=[Depends(jwt.validate_permission)])
+@router.get("/getUserInfo", dependencies=[Depends(jwt.validate_permission)])
 async def user_info(
     user: Annotated[UserResponse, Depends(get_current_user)],
 ) -> ResponseModel[UserResponse]:

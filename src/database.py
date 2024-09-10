@@ -235,7 +235,7 @@ async def select_all(
 
 
 async def select_tree(
-    table: Type[_TSelectParam],
+    table: Any,
     response_model: Type[_TSelectResponse],
     *,
     node_id: int,

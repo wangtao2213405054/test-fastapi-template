@@ -3,9 +3,8 @@
 # _description: 系统管理相关路由
 
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
-from src.api.auth.jwt import validate_permission
 from src.models.types import BatchDeleteRequestModel, DeleteRequestModel, Pagination, ResponseModel
 
 from .models import (
@@ -13,9 +12,9 @@ from .models import (
     AffiliationListResponse,
     MenuInfoResponse,
     MenuListResponse,
+    MenuSimplifyListResponse,
     RoleInfoResponse,
     UserResponse,
-    MenuSimplifyListResponse,
 )
 from .service import (
     batch_delete_menu,
@@ -28,12 +27,13 @@ from .service import (
     edit_role,
     edit_role_permission,
     get_affiliation_tree,
+    get_buttons_menu_list,
+    get_menu_simplify_tree,
     get_menu_tree,
     get_page_list,
     get_role_list,
     update_password,
     update_user,
-    get_menu_simplify_tree,
 )
 from .types import (
     AuthEditAffiliationRequest,
@@ -43,15 +43,17 @@ from .types import (
     CreateUserRequest,
     ManageEditMenuRequest,
     ManageEditRolePermissionRequest,
+    ManageGetDetailPermissionRequest,
     ManageGetMenuListRequest,
+    SubPermission,
     UpdatePasswordRequest,
     UpdateUserInfoRequest,
 )
 
-router = APIRouter(prefix="/manage", dependencies=[Depends(validate_permission)])
+router = APIRouter(prefix="/manage")
 
 
-@router.post("/user/create")
+@router.post("/createUser")
 async def user_edit(body: CreateUserRequest) -> ResponseModel[UserResponse]:
     """
     创建用户接口
@@ -73,7 +75,7 @@ async def user_edit(body: CreateUserRequest) -> ResponseModel[UserResponse]:
     return ResponseModel(data=user)
 
 
-@router.post("/user/update")
+@router.post("/updateUserInfo")
 async def user_update(body: UpdateUserInfoRequest) -> ResponseModel[UserResponse]:
     """
     修改用户信息接口
@@ -96,7 +98,7 @@ async def user_update(body: UpdateUserInfoRequest) -> ResponseModel[UserResponse
     return ResponseModel(data=user)
 
 
-@router.post("/update/password")
+@router.post("/updateUserPassword")
 async def user_update_password(body: UpdatePasswordRequest) -> ResponseModel:
     """
     修改用户密码接口
@@ -110,7 +112,7 @@ async def user_update_password(body: UpdatePasswordRequest) -> ResponseModel:
     return ResponseModel()
 
 
-@router.put("/role/edit")
+@router.put("/editRoleInfo")
 async def role_edit(body: AuthEditRoleRequest) -> ResponseModel[RoleInfoResponse]:
     """
     添加或更新角色信息接口
@@ -129,7 +131,7 @@ async def role_edit(body: AuthEditRoleRequest) -> ResponseModel[RoleInfoResponse
     return ResponseModel(data=role)
 
 
-@router.put("/role/permission")
+@router.put("/updateRolePermission")
 async def role_permission(body: ManageEditRolePermissionRequest) -> ResponseModel[RoleInfoResponse]:
     """
     更新当前角色的权限信息
@@ -148,7 +150,7 @@ async def role_permission(body: ManageEditRolePermissionRequest) -> ResponseMode
     return ResponseModel(data=role)
 
 
-@router.post("/role/list")
+@router.post("/getRoleList")
 async def role_list(
     body: AuthGetRoleListRequest,
 ) -> ResponseModel[Pagination[list[RoleInfoResponse]]]:
@@ -164,7 +166,7 @@ async def role_list(
     return ResponseModel(data=role)
 
 
-@router.delete("/role/delete")
+@router.delete("/deleteRole")
 async def role_delete(body: DeleteRequestModel) -> ResponseModel[RoleInfoResponse]:
     """
     删除角色信息接口
@@ -178,7 +180,7 @@ async def role_delete(body: DeleteRequestModel) -> ResponseModel[RoleInfoRespons
     return ResponseModel(data=role)
 
 
-@router.put("/affiliation/edit")
+@router.put("/editAffiliationInfo")
 async def affiliation_edit(
     body: AuthEditAffiliationRequest,
 ) -> ResponseModel[AffiliationInfoResponse]:
@@ -194,7 +196,7 @@ async def affiliation_edit(
     return ResponseModel(data=affiliation)
 
 
-@router.post("/affiliation/list")
+@router.post("/getAffiliationList")
 async def affiliation_list(
     body: AuthGetAffiliationListRequest,
 ) -> ResponseModel[list[AffiliationListResponse]]:
@@ -210,7 +212,7 @@ async def affiliation_list(
     return ResponseModel(data=affiliation)
 
 
-@router.delete("/affiliation/delete")
+@router.delete("/deleteAffiliation")
 async def affiliation_delete(
     body: DeleteRequestModel,
 ) -> ResponseModel[AffiliationInfoResponse]:
@@ -226,7 +228,7 @@ async def affiliation_delete(
     return ResponseModel(data=affiliation)
 
 
-@router.post("/menu/list")
+@router.post("/getMenuList")
 async def menu_list(body: ManageGetMenuListRequest) -> ResponseModel[Pagination[list[MenuListResponse]]]:
     """
     获取菜单列表接口
@@ -241,19 +243,7 @@ async def menu_list(body: ManageGetMenuListRequest) -> ResponseModel[Pagination[
     return ResponseModel(data=menu)
 
 
-@router.get("/menu/all")
-async def menu_all() -> ResponseModel[list[MenuSimplifyListResponse]]:
-    """
-    获取简化后的菜单列表。\f
-
-    :return: 简化后的菜单列表
-    """
-    menu = await get_menu_simplify_tree()
-
-    return ResponseModel(data=menu)
-
-
-@router.put("/menu/edit")
+@router.put("/editMenuInfo")
 async def menu_edit(body: ManageEditMenuRequest) -> ResponseModel[MenuInfoResponse]:
     """
     新增/修改 路由菜单接口
@@ -291,7 +281,7 @@ async def menu_edit(body: ManageEditMenuRequest) -> ResponseModel[MenuInfoRespon
     return ResponseModel(data=menu)
 
 
-@router.delete("/menu/delete")
+@router.delete("/deleteMenu")
 async def menu_delete(body: DeleteRequestModel) -> ResponseModel[list[MenuInfoResponse]]:
     """
     删除菜单接口
@@ -306,7 +296,7 @@ async def menu_delete(body: DeleteRequestModel) -> ResponseModel[list[MenuInfoRe
     return ResponseModel(data=menu)
 
 
-@router.delete("/menu/batch/delete")
+@router.delete("/batchDeleteMenu")
 async def menu_batch_delete(body: BatchDeleteRequestModel) -> ResponseModel[list[MenuInfoResponse]]:
     """
     批量删除菜单接口
@@ -321,7 +311,7 @@ async def menu_batch_delete(body: BatchDeleteRequestModel) -> ResponseModel[list
     return ResponseModel(data=menu)
 
 
-@router.get("/page/all")
+@router.get("/getPageAll")
 async def page_all() -> ResponseModel[list[str]]:
     """
     获取当前所有的页面\f
@@ -331,3 +321,28 @@ async def page_all() -> ResponseModel[list[str]]:
     page = await get_page_list()
 
     return ResponseModel(data=page)
+
+
+@router.get("/getRouterMenuAll")
+async def router_menu_all() -> ResponseModel[list[MenuSimplifyListResponse]]:
+    """
+    获取简化后的路由菜单列表。\f
+
+    :return: 简化后的菜单列表
+    """
+    menu = await get_menu_simplify_tree()
+
+    return ResponseModel(data=menu)
+
+
+@router.post("/getPermissionMenuAll")
+async def buttons_menu_all(params: ManageGetDetailPermissionRequest) -> ResponseModel[list[SubPermission]]:
+    """
+    通过菜单类型获取对应的列表, 支持 buttons or interfaces 参数。\f
+
+    :param params: <ManageGetDetailPermissionRequest>
+    :return: 对应菜单类型的列表
+    """
+    menu = await get_buttons_menu_list(params.menuType)
+
+    return ResponseModel(data=menu)

@@ -2,6 +2,8 @@
 # _date: 2024/7/26 14:20
 # _description: 系统管理相关的服务器业务逻辑
 
+from itertools import chain
+
 from sqlalchemy import ColumnElement
 from sqlmodel import or_, select
 
@@ -352,21 +354,6 @@ async def get_menu_tree(
     return menu  # type: ignore
 
 
-async def get_menu_simplify_tree() -> list[MenuSimplifyListResponse]:
-    """
-    获取简化后全部的菜单树列表
-
-    :return: 菜单树列表
-    """
-    menu = await database.select_tree(
-        MenuTable,
-        MenuSimplifyListResponse,
-        node_id=0,
-    )
-
-    return menu  # type: ignore
-
-
 @database.unique_check(
     MenuTable,
     func_key="menu_id",
@@ -531,3 +518,32 @@ async def get_page_list() -> list[str]:
     menu = await database.select_all(select(MenuTable.routeName).where(MenuTable.menuType == MENU_ROUTE))
 
     return menu
+
+
+async def get_menu_simplify_tree() -> list[MenuSimplifyListResponse]:
+    """
+    获取简化后全部的菜单树列表
+
+    :return: 菜单树列表
+    """
+    menu = await database.select_tree(
+        MenuTable,
+        MenuSimplifyListResponse,
+        node_id=0,
+    )
+
+    return menu  # type: ignore
+
+
+async def get_buttons_menu_list(menu_type: str) -> list[SubPermission]:
+    """
+    根据 `menu_type` 获取路由中全部的权限菜单
+
+
+    :param menu_type: buttons or interfaces
+    :return: 权限菜单列表
+    """
+
+    menu = await database.select_all(select(getattr(MenuTable, menu_type)))
+
+    return list(chain.from_iterable(menu))

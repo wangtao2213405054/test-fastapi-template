@@ -209,7 +209,8 @@ class MenuListResponse(MenuInfoResponse):
 
 class MenuSimplifyListResponse(BaseModel):
     """简化后的菜单响应体"""
+
     id: int
     nodeId: int
     menuName: str
-    children: list["MenuSimplifyListResponse"] = None
+    children: list["MenuSimplifyListResponse"] = []

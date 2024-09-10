@@ -98,6 +98,10 @@ MENU_ROUTE = 2  # 路由
 ICON_ICONIFY = 1  # iconify 图标
 ICON_LOCAL = 2  # 本地icon
 
+# 权限类型
+PERMISSION_BUTTONS = "buttons"  # button 权限
+PERMISSION_INTERFACE = "interfaces"  # interface 权限
+
 
 class Query(CustomModel):
     key: str
@@ -203,3 +207,18 @@ class ManageEditMenuRequest(CustomModel):
             raise ValueError('路由路径必须以"/"开头')
 
         return route_path
+
+
+class ManageGetDetailPermissionRequest(CustomModel):
+    """获取详细权限菜单请求"""
+
+    menuType: str = Body(PERMISSION_BUTTONS, description="菜单类型")
+
+    # noinspection PyNestedDecorators
+    @field_validator("menuType", mode="after")
+    @classmethod
+    def valid_menu_type(cls, menu_type: str) -> str:
+        if menu_type not in (PERMISSION_BUTTONS, PERMISSION_INTERFACE):
+            raise ValueError("菜单类型错误")
+
+        return menu_type
