@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.api.auth.models import MenuTable, RoleTable
+from src.api.manage.models import MenuTable, RoleTable
 
 
 class RoleDatabase(BaseModel):
@@ -41,7 +41,7 @@ async def database_to_role_scope(session: AsyncSession) -> RoleDatabase:
     await session.commit()
 
     role = RoleTable(
-        name="普通管理员", describe="这是一个普通管理员权限, 可访问部分信息", identifierList=[db_menu.identifier]
+        name="普通管理员", describe="这是一个普通管理员权限, 可访问部分信息", menuIds=[db_menu.id]
     )
     db_role = RoleTable.model_validate(role)
     session.add(db_role)
@@ -57,7 +57,7 @@ async def test_get_role_list(client: AsyncClient, session: AsyncSession, databas
     db_role_json = database_to_role_scope.role.model_dump()
     db_supper_role_json = database_to_role_scope.supperRole.model_dump()
 
-    response = await client.post("/auth/role/list", json={})
+    response = await client.post("/manage/role/list", json={})
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_200_OK
@@ -72,13 +72,13 @@ async def test_get_role_list_page(
 
     db_supper_role_json = database_to_role_scope.supperRole.model_dump()
 
-    page_size_response = await client.post("/auth/role/list", json={"page": 1, "pageSize": 1})
+    page_size_response = await client.post("/manage/role/list", json={"page": 1, "pageSize": 1})
 
     assert page_size_response.status_code == status.HTTP_200_OK
     assert page_size_response.json()["code"] == status.HTTP_200_OK
     assert page_size_response.json()["data"] == [db_supper_role_json]
 
-    page_response = await client.post("/auth/role/list", json={"page": 10, "pageSize": 1})
+    page_response = await client.post("/manage/role/list", json={"page": 10, "pageSize": 1})
 
     assert page_response.status_code == status.HTTP_200_OK
     assert page_response.json()["code"] == status.HTTP_200_OK
@@ -93,7 +93,7 @@ async def test_get_role_list_keyword(
 
     db_role_json = database_to_role_scope.role.model_dump()
 
-    page_size_response = await client.post("/auth/role/list", json={"keyword": "普通管理员"})
+    page_size_response = await client.post("/manage/role/list", json={"keyword": "普通管理员"})
 
     assert page_size_response.status_code == status.HTTP_200_OK
     assert page_size_response.json()["code"] == status.HTTP_200_OK
@@ -104,7 +104,7 @@ async def test_get_role_list_keyword(
 async def test_add_role_info(client: AsyncClient, session: AsyncSession) -> None:
     """测试 /role/edit 接口新增数据"""
 
-    response = await client.put("/auth/role/edit", json={"name": "外部角色"})
+    response = await client.put("/manage/role/edit", json={"name": "外部角色"})
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_200_OK
@@ -126,7 +126,7 @@ async def test_update_role_info(
     role = database_to_role_scope.role
 
     response = await client.put(
-        "/auth/role/edit", json={"id": role.id, "name": "修改后的超级管理员", "describe": "修改后的描述"}
+        "/manage/role/edit", json={"id": role.id, "name": "修改后的超级管理员", "describe": "修改后的描述"}
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -144,7 +144,7 @@ async def test_delete_role_info(
     """测试 /role/delete 接口"""
 
     role = database_to_role_scope.supperRole
-    response = await client.request("DELETE", "/auth/role/delete", json={"id": role.id})
+    response = await client.request("DELETE", "/manage/role/delete", json={"id": role.id})
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_200_OK

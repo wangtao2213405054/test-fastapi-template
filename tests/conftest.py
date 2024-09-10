@@ -53,8 +53,8 @@ async def init(session: AsyncSession) -> AsyncInit:
     :return:
     """
 
-    from src.api.auth import security
-    from src.api.auth.models import AffiliationTable, UserCreate, UserTable, RoleTable
+    from src.api.manage import security
+    from src.api.manage.models import AffiliationTable, UserCreate, UserTable, RoleTable
 
     # 所属关系表
     affiliation = AffiliationTable(name="字节跳动")
@@ -117,7 +117,7 @@ async def client(
     :return: AsyncGenerator[AsyncClient, None]: 一个异步生成器，生成 `AsyncClient` 实例。
     """
     from src import database
-    from src.api.auth.jwt import validate_permission
+    from src.api.manage.jwt import validate_permission
     from src.config import settings
     from src.main import app
 

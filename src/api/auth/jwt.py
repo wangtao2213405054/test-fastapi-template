@@ -14,9 +14,9 @@ from sqlmodel import select
 from src import database
 from src.api.auth.config import auth_config
 from src.api.auth.exceptions import AuthorizationFailed, AuthRequired, InvalidToken, RefreshTokenNotValid
+from src.api.manage.models import UserTable
 from src.config import settings
 
-from .models import UserTable
 from .types import JWTData, JWTRefreshTokenData
 
 # OAuth2PasswordBearer 实例，用于从请求中提取 JWT Token
@@ -145,5 +145,5 @@ async def validate_permission(
         select(UserTable).options(database.joined_load(UserTable.role)).where(UserTable.id == token.userId)
     )
 
-    if not (user.isAdmin or (user.roleId and user.role and uri in user.role.identifierList)):
+    if not (user.isAdmin or (user.roleId and user.role and uri in user.role.menuIds)):
         raise AuthorizationFailed()

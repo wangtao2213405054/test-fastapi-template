@@ -1,106 +1,90 @@
 # _author: Coke
-# _date: 2024/7/25 14:15
-# _description: 用户验证相关路由
+# _date: 2024/8/26 下午3:51
+# _description: 用户认证相关路由
 
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends
+from fastapi.security import OAuth2PasswordRequestForm
 
-from src.models.types import DeleteRequestModel, Pagination, ResponseModel
+from src.api.auth import jwt
+from src.api.manage.models import UserResponse
+from src.config import debug
+from src.models.types import ResponseModel
 from src.websocketio import socket
 
-from .jwt import validate_permission
-from .models import (
-    AffiliationInfoResponse,
-    AffiliationListResponse,
-    RoleInfoResponse,
-    UserResponse,
-)
-from .service import (
-    create_user,
-    delete_affiliation,
-    delete_role,
-    edit_affiliation,
-    edit_role,
-    get_affiliation_tree,
-    get_current_user,
-    get_role_list,
-    update_password,
-    update_user,
-)
-from .types import (
-    AuthEditAffiliationRequest,
-    AuthEditRoleRequest,
-    AuthGetAffiliationListRequest,
-    AuthGetRoleListRequest,
-    CreateUserRequest,
-    UpdatePasswordRequest,
-    UpdateUserInfoRequest,
-)
+from .models import AccessTokenResponse, SwaggerToken
+from .service import authenticate_user, get_current_user, get_public_key, login, refresh_token
+from .types import AuthLoginRequest, JWTData, RefreshTokenRequest
 
-router = APIRouter(prefix="/auth", dependencies=[Depends(validate_permission)])
+router = APIRouter(prefix="/auth")
 
 
-@router.post("/user/create")
-async def user_edit(body: CreateUserRequest) -> ResponseModel[UserResponse]:
+@router.get("/public/key")
+def user_public_key() -> ResponseModel[str]:
     """
-    创建用户接口
+    获取密码公钥接口
 
-    创建一个新的用户。需要提供用户的名称、邮箱、手机号码、密码、所属关系 ID 和（可选的）头像 URL 和角色 ID。\f
+    获取用于加密用户密码的公钥。\f
 
-    :param body: 包含用户信息的 <CreateUserRequest> 对象
-    :return: 包含新创建用户信息的 <ResponseModel> 对象
+    :return: 包含公钥的 <ResponseModel> 对象
     """
-    user = await create_user(
-        name=body.name,
-        email=body.email,
-        mobile=body.mobile,
-        password=body.password,
-        affiliation_id=body.affiliationId,
-        role_id=body.roleId,
-        avatar=body.avatarUrl.unicode_string() if body.avatarUrl else None,
+    public_key = get_public_key()
+    return ResponseModel(data=public_key)
+
+
+@router.post("/swagger/login", deprecated=True, dependencies=[Depends(debug)])
+async def swagger_login(
+    form: Annotated[OAuth2PasswordRequestForm, Depends()],
+) -> SwaggerToken:
+    """
+    Swagger 登录接口 (仅在开发环境中使用)
+
+    用于 Swagger 文档的登录功能，注意此接口的密码没有进行加密，因此仅在开发环境中使用。\n
+    注意!!! 此接口传递的密码没有进行加密, 请谨慎使用...\f
+
+    :param form: 包含用户名和密码的 <OAuth2PasswordRequestForm> 对象
+    :return: 包含访问令牌的 <SwaggerToken> 对象
+    """
+    user = await authenticate_user(form.username, form.password)
+    return SwaggerToken(
+        access_token=jwt.create_access_token(user=JWTData(userId=user.id)),
+        token_type="bearer",
     )
-    return ResponseModel(data=user)
 
 
-@router.post("/user/update")
-async def user_update(body: UpdateUserInfoRequest) -> ResponseModel[UserResponse]:
+@router.post("/user/login")
+async def user_login(body: AuthLoginRequest) -> ResponseModel[AccessTokenResponse]:
     """
-    修改用户信息接口
+    用户登录接口
 
-    更新现有用户的信息。可以修改用户的名称、邮箱、手机号码、状态、所属关系 ID、头像 URL 和角色 ID。\f
+    用户通过提供用户名和密码来登录系统。密码在发送前会被解密。成功后，返回访问令牌和刷新令牌。\f
 
-    :param body: 包含用户信息的 <UpdateUserInfoRequest> 对象
-    :return: 包含更新后用户信息的 <ResponseModel> 对象
+    :param body: 包含用户名和加密密码的 <AuthLoginRequest> 对象
+    :return: 包含访问令牌和刷新令牌的 <ResponseModel> 对象
     """
-    user = await update_user(
-        user_id=body.id,
-        name=body.name,
-        email=body.email,
-        mobile=body.mobile,
-        status=body.status,
-        affiliation_id=body.affiliationId,
-        avatar=body.avatarUrl,
-        role_id=body.roleId,
-    )
-    return ResponseModel(data=user)
+
+    response: AccessTokenResponse = await login(body.username, body.password)
+
+    return ResponseModel(data=response)
 
 
-@router.post("/update/password")
-async def user_update_password(body: UpdatePasswordRequest) -> ResponseModel:
+@router.post("/refresh/token")
+async def refresh_user_token(body: RefreshTokenRequest) -> ResponseModel[AccessTokenResponse]:
     """
-    修改用户密码接口
+    刷新用户令牌接口
 
-    更新用户的密码。需要提供用户 ID、旧密码和新密码。\f
+    使用刷新令牌来生成新的 Token。此接口允许用户在原有的 Token 过期后获取新的 Token \f
 
-    :param body: 包含密码信息的 <UpdatePasswordRequest> 对象
-    :return: 无内容的 <ResponseModel> 对象
+    :param body: 包含刷新令牌的 <RefreshTokenRequest> 对象
+    :return: 包含新生成的访问令牌和刷新令牌的 <ResponseModel> 对象
     """
-    await update_password(user_id=body.id, old_password=body.oldPassword, new_password=body.newPassword)
-    return ResponseModel()
+
+    response: AccessTokenResponse = await refresh_token(body.refreshToken)
+    return ResponseModel(data=response)
 
 
-@router.get("/user/info")
+@router.get("/user/info", dependencies=[Depends(jwt.validate_permission)])
 async def user_info(
     user: Annotated[UserResponse, Depends(get_current_user)],
 ) -> ResponseModel[UserResponse]:
@@ -113,103 +97,6 @@ async def user_info(
     :return: 包含用户信息的 <ResponseModel> 对象
     """
     return ResponseModel(data=user)
-
-
-@router.put("/role/edit")
-async def role_edit(body: AuthEditRoleRequest) -> ResponseModel[RoleInfoResponse]:
-    """
-    添加或更新角色信息接口
-
-    根据提供的角色 ID 更新角色信息，如果 ID 不存在则创建新的角色。\f
-
-    :param body: 包含角色信息的 <AuthEditRoleRequest> 对象
-    :return: 无内容的 <ResponseModel> 对象
-    """
-    role = await edit_role(
-        role_id=body.id,
-        name=body.name,
-        describe=body.describe,
-        identifier_list=body.menuIdentifierList,
-    )
-    return ResponseModel(data=role)
-
-
-@router.post("/role/list")
-async def role_list(
-    body: AuthGetRoleListRequest,
-) -> ResponseModel[Pagination[list[RoleInfoResponse]]]:
-    """
-    获取角色列表接口
-
-    获取角色的分页列表，并可以通过关键字进行过滤。\f
-
-    :param body: 包含分页和关键字信息的 <AuthGetRoleListRequest> 对象
-    :return: 包含角色列表的 <ResponseModel> 对象
-    """
-    role = await get_role_list(body.page, body.pageSize, keyword=body.keyword)
-    return ResponseModel(data=role)
-
-
-@router.delete("/role/delete")
-async def role_delete(body: DeleteRequestModel) -> ResponseModel[RoleInfoResponse]:
-    """
-    删除角色信息接口
-
-    根据角色 ID 删除指定的角色信息。\f
-
-    :param body: 包含角色 ID 的 <DeleteRequestModel> 对象
-    :return: 包含被删除角色信息的 <ResponseModel> 对象
-    """
-    role = await delete_role(role_id=body.id)
-    return ResponseModel(data=role)
-
-
-@router.put("/affiliation/edit")
-async def affiliation_edit(
-    body: AuthEditAffiliationRequest,
-) -> ResponseModel[AffiliationInfoResponse]:
-    """
-    添加或更新所属关系信息接口
-
-    根据提供的所属关系 ID 更新所属关系信息，如果 ID 不存在则创建新的所属关系。\f
-
-    :param body: 包含所属关系信息的 <AuthEditAffiliationRequest> 对象
-    :return: 包含更新后所属关系信息的 <ResponseModel> 对象
-    """
-    affiliation = await edit_affiliation(affiliation_id=body.id, name=body.name, node_id=body.nodeId)
-    return ResponseModel(data=affiliation)
-
-
-@router.post("/affiliation/list")
-async def affiliation_list(
-    body: AuthGetAffiliationListRequest,
-) -> ResponseModel[list[AffiliationListResponse]]:
-    """
-    获取所属关系列表接口
-
-    获取指定节点的所有所属关系，并可以通过关键字进行过滤。\f
-
-    :param body: 包含节点 ID 和关键字的 <AuthGetAffiliationListRequest> 对象
-    :return: 包含所属关系列表的 <ResponseModel> 对象
-    """
-    affiliation = await get_affiliation_tree(node_id=body.nodeId, keyword=body.keyword)
-    return ResponseModel(data=affiliation)
-
-
-@router.delete("/affiliation/delete")
-async def affiliation_delete(
-    body: DeleteRequestModel,
-) -> ResponseModel[AffiliationInfoResponse]:
-    """
-    删除所属关系接口
-
-    根据所属关系 ID 删除指定的所属关系。\f
-
-    :param body: 包含所属关系 ID 的 <DeleteRequestModel> 对象
-    :return: 包含被删除所属关系信息的 <ResponseModel> 对象
-    """
-    affiliation = await delete_affiliation(affiliation_id=body.id)
-    return ResponseModel(data=affiliation)
 
 
 @socket.event

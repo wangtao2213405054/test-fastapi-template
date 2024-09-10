@@ -23,9 +23,9 @@ async def client(
     from src import database
     from src.config import settings
     from src.main import app
-    from src.api.auth.jwt import create_access_token
-    from src.api.auth.jwt import validate_permission
-    from src.api.auth.types import JWTData
+    from src.api.manage.jwt import create_access_token
+    from src.api.manage.jwt import validate_permission
+    from src.api.manage.types import JWTData
 
     # 使用内存修改工具修改 get_session 类
     monkeypatch.setattr(database, "get_session", lambda: session)
@@ -45,7 +45,7 @@ async def client(
 async def test_public_key(client: AsyncClient) -> None:
     """测试 /public/key 获取公钥接口"""
 
-    response = await client.get("/auth/public/key")
+    response = await client.get("/manage/public/key")
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_200_OK
@@ -58,7 +58,7 @@ async def test_login(
     """测试 /user/login 接口"""
 
     from src import cache
-    from src.api.auth import service
+    from src.api.manage import service
 
     async def fake_set_redis_key(*args, **kwargs) -> None:  # type: ignore
         ...
@@ -68,7 +68,7 @@ async def test_login(
     monkeypatch.setattr(service, "check_password", lambda *args, **kwargs: True)
     monkeypatch.setattr(cache, "set_redis_key", fake_set_redis_key)
 
-    response = await client.post("/auth/user/login", json={"password": "123456", "username": init.user.email})
+    response = await client.post("/manage/user/login", json={"password": "123456", "username": init.user.email})
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_200_OK
@@ -79,8 +79,8 @@ async def test_refresh_token(init: AsyncInit, client: AsyncClient, monkeypatch: 
     """测试 /refresh/token 接口"""
 
     from src import cache
-    from src.api.auth.jwt import create_refresh_token
-    from src.api.auth.types import JWTRefreshTokenData
+    from src.api.manage.jwt import create_refresh_token
+    from src.api.manage.types import JWTRefreshTokenData
 
     _uuid = str(uuid.uuid4())
 
@@ -95,7 +95,7 @@ async def test_refresh_token(init: AsyncInit, client: AsyncClient, monkeypatch: 
 
     _refresh_token = create_refresh_token(user=JWTRefreshTokenData(userId=init.user.id, uuid=_uuid))
 
-    response = await client.post("/auth/refresh/token", json={"refreshToken": _refresh_token})
+    response = await client.post("/manage/refresh/token", json={"refreshToken": _refresh_token})
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_200_OK
@@ -105,14 +105,14 @@ async def test_refresh_token(init: AsyncInit, client: AsyncClient, monkeypatch: 
 async def test_user_info(client: AsyncClient, init: AsyncInit) -> None:
     """测试 /user/info 接口"""
 
-    from src.api.auth.models import UserResponse
-    from src.api.auth.jwt import create_access_token
-    from src.api.auth.types import JWTData
+    from src.api.manage.models import UserResponse
+    from src.api.manage.jwt import create_access_token
+    from src.api.manage.types import JWTData
 
     token = create_access_token(user=JWTData(userId=init.user.id))
     client.headers.update({"Authorization": f"Bearer {token}"})
 
-    response = await client.get("/auth/user/info")
+    response = await client.get("/manage/user/info")
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_200_OK
@@ -124,7 +124,7 @@ async def test_user_info_not_token(client: AsyncClient, init: AsyncInit) -> None
     """测试 /user/info 接口 验证Token"""
 
     client.headers.update({"Authorization": ""})
-    response = await client.get("/auth/user/info")
+    response = await client.get("/manage/user/info")
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_401_UNAUTHORIZED
@@ -134,10 +134,10 @@ async def test_user_info_not_token(client: AsyncClient, init: AsyncInit) -> None
 async def test_user_info_not_permission(client: AsyncClient, session: AsyncSession) -> None:
     """测试 /user/info 接口 验证Token"""
 
-    from src.api.auth import security
-    from src.api.auth.models import UserCreate, UserTable
-    from src.api.auth.jwt import create_access_token
-    from src.api.auth.types import JWTData
+    from src.api.manage import security
+    from src.api.manage.models import UserCreate, UserTable
+    from src.api.manage.jwt import create_access_token
+    from src.api.manage.types import JWTData
 
     user = UserCreate(
         email="permission@qq.com",
@@ -154,7 +154,7 @@ async def test_user_info_not_permission(client: AsyncClient, session: AsyncSessi
     token = create_access_token(user=JWTData(userId=db_user.id))
     client.headers.update({"Authorization": f"Bearer {token}"})
 
-    response = await client.get("/auth/user/info")
+    response = await client.get("/manage/user/info")
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_403_FORBIDDEN
@@ -166,12 +166,12 @@ async def test_user_create(
 ) -> None:
     """测试 /user/create 接口"""
 
-    from src.api.auth import service
-    from src.api.auth.models import UserTable, UserResponse
+    from src.api.manage import service
+    from src.api.manage.models import UserTable, UserResponse
 
     monkeypatch.setattr(service, "decrypt_password", lambda password: password)
 
-    response = await client.post("/auth/user/create", json={
+    response = await client.post("/manage/user/create", json={
         "name": "测试账号",
         "email": "coke@test.cn",
         "mobile": "11012011991",
@@ -195,9 +195,9 @@ async def test_user_create(
 async def test_user_update(client: AsyncClient, session: AsyncSession, init: AsyncInit) -> None:
     """测试 /user/update 接口"""
 
-    from src.api.auth.models import UserTable, UserResponse
+    from src.api.manage.models import UserTable, UserResponse
 
-    response = await client.post("/auth/user/update", json={
+    response = await client.post("/manage/user/update", json={
         "name": "测试账号",
         "email": "coke@test.cn",
         "mobile": "11012011991",
@@ -221,9 +221,9 @@ async def test_update_password(
 ) -> None:
     """测试 /update/password 接口"""
 
-    from src.api.auth.models import UserTable
-    from src.api.auth import service
-    from src.api.auth.security import check_password
+    from src.api.manage.models import UserTable
+    from src.api.manage import service
+    from src.api.manage.security import check_password
 
     monkeypatch.setattr(service, "decrypt_password", lambda password: password)
     monkeypatch.setattr(service, "check_password", lambda *args, **kwargs: True)
@@ -235,7 +235,7 @@ async def test_update_password(
         "newPassword": new_password,
     }
 
-    response = await client.post("/auth/update/password", json=body)
+    response = await client.post("/manage/update/password", json=body)
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_200_OK

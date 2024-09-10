@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.api.auth.models import AffiliationTable
+from src.api.manage.models import AffiliationTable
 
 
 class AffiliationDatabase(BaseModel):
@@ -53,7 +53,7 @@ async def test_get_affiliation_list(
     db_children_affiliation_json["children"] = []
     db_affiliation_json["children"] = [db_children_affiliation_json]
 
-    response = await client.post("/auth/affiliation/list", json={})
+    response = await client.post("/manage/affiliation/list", json={})
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_200_OK
@@ -70,7 +70,7 @@ async def test_get_affiliation_list_keyword(
     db_affiliation_json = db_affiliation.model_dump()
     db_affiliation_json["children"] = []
 
-    response = await client.post("/auth/affiliation/list", json={"keyword": db_affiliation.name})
+    response = await client.post("/manage/affiliation/list", json={"keyword": db_affiliation.name})
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_200_OK
     assert response.json()["data"] == [db_affiliation_json]
@@ -86,7 +86,7 @@ async def test_get_affiliation_list_node(
     db_affiliation_json = db_affiliation.model_dump()
     db_affiliation_json["children"] = []
 
-    response = await client.post("/auth/affiliation/list", json={"nodeId": db_affiliation.nodeId})
+    response = await client.post("/manage/affiliation/list", json={"nodeId": db_affiliation.nodeId})
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_200_OK
@@ -104,7 +104,7 @@ async def test_get_affiliation_list_node_keyword(
     db_affiliation_json["children"] = []
 
     response = await client.post(
-        "/auth/affiliation/list", json={"nodeId": db_affiliation.nodeId, "keyword": db_affiliation.name}
+        "/manage/affiliation/list", json={"nodeId": db_affiliation.nodeId, "keyword": db_affiliation.name}
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -116,7 +116,7 @@ async def test_get_affiliation_list_node_keyword(
 async def test_add_affiliation_info(client: AsyncClient, session: AsyncSession):
     """测试 /affiliation/edit 接口新增数据"""
 
-    response = await client.put("/auth/affiliation/edit", json={"name": "西瓜视频"})
+    response = await client.put("/manage/affiliation/edit", json={"name": "西瓜视频"})
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_200_OK
@@ -135,7 +135,7 @@ async def test_update_affiliation_info(
     """测试 /affiliation/edit 接口修改数据"""
 
     update_id = database_to_affiliation_scope.affiliation.id
-    response = await client.put("/auth/affiliation/edit", json={"id": update_id, "name": "桃子"})
+    response = await client.put("/manage/affiliation/edit", json={"id": update_id, "name": "桃子"})
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_200_OK
@@ -153,7 +153,7 @@ async def test_delete_affiliation_info(
     """测试 /affiliation/delete 接口"""
 
     affiliation = database_to_affiliation_scope.affiliation
-    response = await client.request("DELETE", "/auth/affiliation/delete", json={"id": affiliation.id})
+    response = await client.request("DELETE", "/manage/affiliation/delete", json={"id": affiliation.id})
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["code"] == status.HTTP_200_OK

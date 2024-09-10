@@ -4,7 +4,7 @@
 
 from pydantic import BaseModel
 
-from src.api.auth.models import AffiliationTable, UserTable, RoleTable
+from src.api.manage.models import AffiliationTable, UserTable, RoleTable
 
 
 class AsyncInit(BaseModel):

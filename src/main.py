@@ -17,7 +17,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.exc import DatabaseError
 
-from src.api.auth.public import router as public_auth_router
 from src.api.auth.router import router as auth_router
 from src.api.manage.router import router as manage_router
 from src.cache import lifespan
@@ -188,8 +187,6 @@ if settings.ENVIRONMENT.is_deployed:
     sentry_sdk.init(dsn=settings.SENTRY_DSN, environment=settings.ENVIRONMENT)
 
 
-# 路由注册区域
-app.include_router(public_auth_router, prefix=settings.PREFIX, tags=["认证"])
 app.include_router(auth_router, prefix=settings.PREFIX, tags=["认证"])
 
 app.include_router(manage_router, prefix=settings.PREFIX, tags=["系统管理"])

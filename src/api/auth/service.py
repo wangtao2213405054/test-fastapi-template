@@ -1,6 +1,6 @@
 # _author: Coke
-# _date: 2024/7/26 14:20
-# _description: Auth 验证相关的服务器业务逻辑
+# _date: 2024/8/26 下午3:51
+# _description: 用户认证相关逻辑
 
 import datetime
 import logging
@@ -10,30 +10,42 @@ from typing import Annotated
 from fastapi import Depends
 from sqlmodel import select
 
-from src import cache, database, utils
+from src import cache, database
 from src.api.auth import jwt
-from src.models.types import Pagination, RedisData
+from src.api.manage.models import UserResponse, UserTable
+from src.models.types import RedisData
 from src.utils import validate
 
 from .config import PRIVATE_KEY, PUBLIC_KEY, auth_config
 from .exceptions import InvalidPassword, InvalidUsername, RefreshTokenNotValid, StandardsPassword, WrongPassword
-from .jwt import parse_jwt_refresh_token, parse_jwt_user_data
-from .models import (
-    AffiliationCreate,
-    AffiliationInfoResponse,
-    AffiliationListResponse,
-    AffiliationTable,
-    RoleCreate,
-    RoleInfoResponse,
-    RoleTable,
-    UserCreate,
-    UserResponse,
-    UserTable,
-)
-from .security import check_password, decrypt_message, hash_password, serialize_key
-from .types import AccessTokenResponse, JWTData, JWTRefreshTokenData
+from .models import AccessTokenResponse
+from .security import check_password, decrypt_message, serialize_key
+from .types import JWTData, JWTRefreshTokenData
 
 REDIS_REFRESH_KEY = "REFRESH_UUID"
+
+
+async def authenticate_user(username: str, password: str) -> UserTable:
+    """
+    验证用户密码
+
+    该函数验证给定的用户名和密码是否匹配。如果用户名不存在或密码错误，则抛出适当的异常。
+
+    :param username: 用户名（通常是邮箱）
+    :param password: 密码
+    :return: 用户响应对象
+    :raises InvalidUsername: 用户名不存在时抛出
+    :raises WrongPassword: 密码错误时抛出
+    """
+    user = await database.select(select(UserTable).where(UserTable.email == username), nullable=True)
+
+    if not user:
+        raise InvalidUsername()
+
+    if not check_password(password, user.password):
+        raise WrongPassword()
+
+    return user
 
 
 def get_refresh_key(user_id: int | None) -> str:
@@ -108,7 +120,7 @@ async def refresh_token(token: str) -> AccessTokenResponse:
     :raises RefreshTokenNotValid: 当令牌无效、过期、和缓存不匹配或无法解码时。
     """
 
-    _refresh_token = await parse_jwt_refresh_token(token=token)
+    _refresh_token = await jwt.parse_jwt_refresh_token(token=token)
 
     redis_key = await cache.get_by_key(key=get_refresh_key(_refresh_token.userId))
 
@@ -146,128 +158,8 @@ def decrypt_password(password: str) -> str:
     return rsa_password
 
 
-@database.unique_check(
-    UserTable,
-    mobile=database.UniqueDetails(message="手机号码"),
-    email=database.UniqueDetails(message="邮箱"),
-)
-async def create_user(
-    *,
-    name: str,
-    email: str,
-    mobile: str,
-    password: str,
-    affiliation_id: int,
-    avatar: str | None = None,
-    role_id: int | None = None,
-) -> UserResponse:
-    """
-    创建一个新的用户
-
-    该函数创建一个新的用户记录，并将其插入数据库。用户的密码经过解密和哈希处理，以确保安全性。
-
-    :param name: 用户名称
-    :param email: 用户邮箱
-    :param mobile: 用户手机号码
-    :param password: 用户密码（加密格式）
-    :param affiliation_id: 所属关系 ID
-    :param avatar: 用户头像 URL（可选）
-    :param role_id: 用户角色 ID（可选）
-    :return: 创建的用户响应对象
-    """
-    username = utils.pinyin(name)
-    password_hash: bytes = hash_password(decrypt_password(password))
-
-    user = await database.insert(
-        UserTable,
-        UserCreate(
-            name=name,
-            username=username,
-            email=email,
-            mobile=mobile,
-            password=password_hash,
-            avatarUrl=avatar,
-            roleId=role_id,
-            affiliationId=affiliation_id,
-        ),
-    )
-
-    return UserResponse(**user.model_dump())
-
-
-@database.unique_check(
-    UserTable,
-    func_key="user_id",
-    model_key="id",
-    mobile=database.UniqueDetails(message="手机号码已存在"),
-    email=database.UniqueDetails(message="邮件已存在"),
-)
-async def update_user(
-    *,
-    user_id: int,
-    name: str,
-    email: str,
-    mobile: str,
-    affiliation_id: int,
-    status: bool = True,
-    avatar: str | None = None,
-    role_id: int | None = None,
-) -> UserResponse:
-    """
-    修改用户信息
-
-    该函数更新用户的相关信息，包括姓名、邮箱、手机号码等，并保存到数据库中。
-
-    :param user_id: 用户 ID
-    :param name: 用户名称
-    :param email: 用户邮箱
-    :param mobile: 用户手机号码
-    :param affiliation_id: 所属关系 ID
-    :param status: 用户状态（默认为在职）
-    :param avatar: 用户头像 URL（可选）
-    :param role_id: 用户角色 ID（可选）
-    :return: 更新后的用户响应对象
-    """
-    user = await database.select(select(UserTable).where(UserTable.id == user_id))
-    user.name = name
-    user.username = utils.pinyin(name)
-    user.email = email
-    user.mobile = mobile
-    user.avatarUrl = avatar
-    user.status = status
-    user.roleId = role_id
-    user.affiliationId = affiliation_id
-
-    _update_user = await database.update(user)
-
-    return UserResponse(**_update_user.model_dump())
-
-
-async def authenticate_user(username: str, password: str) -> UserTable:
-    """
-    验证用户密码
-
-    该函数验证给定的用户名和密码是否匹配。如果用户名不存在或密码错误，则抛出适当的异常。
-
-    :param username: 用户名（通常是邮箱）
-    :param password: 密码
-    :return: 用户响应对象
-    :raises InvalidUsername: 用户名不存在时抛出
-    :raises WrongPassword: 密码错误时抛出
-    """
-    user = await database.select(select(UserTable).where(UserTable.email == username), nullable=True)
-
-    if not user:
-        raise InvalidUsername()
-
-    if not check_password(password, user.password):
-        raise WrongPassword()
-
-    return user
-
-
 async def get_current_user(
-    user_data: Annotated[JWTData, Depends(parse_jwt_user_data)],
+    user_data: Annotated[JWTData, Depends(jwt.parse_jwt_user_data)],
 ) -> UserResponse:
     """
     获取当前用户信息
@@ -281,153 +173,5 @@ async def get_current_user(
     user = await database.select(
         select(UserTable).options(database.joined_load(UserTable.role)).where(UserTable.id == user_data.userId)
     )
-    roles = user.role.identifierList if user.role else []
+    roles = user.role.menuIds if user.role else []
     return UserResponse(**user.model_dump(), roles=roles)
-
-
-async def update_password(*, user_id: int, old_password: str, new_password: str) -> None:
-    """
-    更新用户的密码信息
-
-    该函数验证旧密码是否正确，并将用户的密码更新为新的密码。密码进行解密和哈希处理。
-
-    :param user_id: 用户 ID
-    :param old_password: 旧密码
-    :param new_password: 新密码
-    :return: None
-    :raises WrongPassword: 旧密码不正确时抛出
-    """
-    old_password = decrypt_password(old_password)
-    password = hash_password(decrypt_password(new_password))
-    user = await database.select(select(UserTable).where(UserTable.id == user_id))
-
-    verify_password = check_password(old_password, user.password)
-    if not verify_password:
-        raise WrongPassword()
-
-    user.password = password
-    await database.update(user)
-
-
-async def edit_affiliation(*, affiliation_id: int, name: str, node_id: int) -> AffiliationInfoResponse:
-    """
-    创建/更新一个所属关系
-
-    该函数根据 `affiliation_id` 来判断是创建新的所属关系还是更新现有的所属关系。
-
-    :param affiliation_id: 所属关系 ID（如果提供，则视为更新）
-    :param name: 所属关系名称
-    :param node_id: 节点 ID
-    :return: 所属关系的响应对象
-    """
-    if affiliation_id:
-        affiliation = await database.select(select(AffiliationTable).where(AffiliationTable.id == affiliation_id))
-        affiliation.name = name
-        affiliation.nodeId = node_id
-
-        update_affiliation = await database.update(affiliation)
-
-        return AffiliationInfoResponse(**update_affiliation.model_dump())
-
-    add_affiliation = await database.insert(AffiliationTable, AffiliationCreate(name=name, nodeId=node_id))
-
-    return AffiliationInfoResponse(**add_affiliation.model_dump())
-
-
-async def delete_affiliation(*, affiliation_id: int) -> AffiliationInfoResponse:
-    """
-    删除一个所属关系
-
-    该函数根据 `affiliation_id` 删除指定的所属关系。
-
-    :param affiliation_id: 所属关系 ID
-    :return: 删除的所属关系的响应对象
-    """
-    affiliation = await database.delete(select(AffiliationTable).where(AffiliationTable.id == affiliation_id))
-
-    return AffiliationInfoResponse(**affiliation.model_dump())
-
-
-async def get_affiliation_tree(*, node_id: int, keyword: str = "") -> list[AffiliationListResponse]:
-    """
-    获取当前的所属关系树
-
-    递归地获取从指定节点开始的所有所属关系，并根据 `keyword` 进行关键字匹配。
-
-    :param node_id: 节点 ID
-    :param keyword: 关键字查询（可选）
-    :return: 所有所属关系的列表
-    """
-
-    affiliation_dict_list = await database.select_tree(
-        AffiliationTable, AffiliationListResponse, node_id=node_id, keyword_map_list=["name"], keyword=keyword
-    )
-
-    return affiliation_dict_list  # type: ignore
-
-
-async def edit_role(*, role_id: int, name: str, describe: str | None, identifier_list: list[str]) -> RoleInfoResponse:
-    """
-    创建/修改一个角色信息
-
-    该函数根据 `role_id` 判断是创建新的角色还是更新现有角色的信息。
-
-    :param role_id: 角色 ID（如果提供，则视为更新）
-    :param name: 角色名称
-    :param describe: 角色描述
-    :param identifier_list: 此角色绑定的权限菜单标识符列表
-    :return: 角色的响应对象
-    """
-    if role_id:
-        role = await database.select(select(RoleTable).where(RoleTable.id == role_id))
-        role.name = name
-        role.describe = describe
-        role.identifierList = identifier_list
-
-        update_role = await database.update(role)
-        return RoleInfoResponse(**update_role.model_dump())
-
-    add_role = await database.insert(
-        RoleTable,
-        RoleCreate(name=name, describe=describe, identifierList=identifier_list),
-    )
-    return RoleInfoResponse(**add_role.model_dump())
-
-
-async def get_role_list(page: int, size: int, *, keyword: str = "") -> Pagination[list[RoleInfoResponse]]:
-    """
-    获取角色信息列表
-
-    该函数分页获取角色信息，并根据 `keyword` 进行关键字匹配。
-
-    :param page: 当前页
-    :param size: 每页的大小
-    :param keyword: 关键字查询（可选，匹配角色名称或标识符）
-    :return: 角色信息的列表
-    """
-    role_pagination = await database.pagination(
-        select(RoleTable).where(database.like(field=RoleTable.name, keyword=keyword)),
-        page=page,
-        size=size,
-    )
-
-    return Pagination(
-        page=role_pagination.page,
-        pageSize=role_pagination.pageSize,
-        records=[RoleInfoResponse(**role.model_dump()) for role in role_pagination.records],
-        total=role_pagination.total,
-    )
-
-
-async def delete_role(*, role_id: int) -> RoleInfoResponse:
-    """
-    删除一个角色信息
-
-    该函数根据 `role_id` 删除指定的角色信息。
-
-    :param role_id: 角色 ID
-    :return: 删除的角色信息的响应对象
-    """
-
-    role = await database.delete(select(RoleTable).where(RoleTable.id == role_id))
-    return RoleInfoResponse(**role.model_dump())

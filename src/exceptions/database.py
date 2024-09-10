@@ -28,6 +28,8 @@ class DatabaseNotFound(DetailedHTTPException):
 
 
 class DatabaseUniqueError(DetailedHTTPException):
+    """数据在数据库中已存在"""
+
     STATUS_CODE = status.DATABASE_611_UNIQUE
     DETAIL = message.DATABASE_611_UNIQUE
 
