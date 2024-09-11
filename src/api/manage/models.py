@@ -3,7 +3,6 @@
 # _description: 系统管理相关数据库响应模型
 
 from pydantic import Field as PydanticField
-from pydantic import field_validator
 from sqlmodel import JSON, Column, Field, Relationship
 
 from src.models import BaseModel
@@ -164,23 +163,23 @@ class MenuBase(BaseModel):
     buttons: list[SubPermission] = Field([], sa_column=Column(JSON), description="按钮权限")
     interfaces: list[SubPermission] = Field([], sa_column=Column(JSON), description="接口权限")
 
-    # noinspection PyNestedDecorators
-    @field_validator("query", mode="after")
-    @classmethod
-    def convert_query_to_dict(cls, query: list[Query]) -> list[dict]:
-        return [item.model_dump() for item in query]
-
-    # noinspection PyNestedDecorators
-    @field_validator("buttons", mode="after")
-    @classmethod
-    def convert_buttons_to_dict(cls, buttons: list[SubPermission]) -> list[dict]:
-        return [item.model_dump() for item in buttons]
-
-    # noinspection PyNestedDecorators
-    @field_validator("interfaces", mode="after")
-    @classmethod
-    def convert_interfaces_to_dict(cls, interfaces: list[SubPermission]) -> list[dict]:
-        return [item.model_dump() for item in interfaces]
+    # # noinspection PyNestedDecorators
+    # @field_validator("query", mode="after")
+    # @classmethod
+    # def convert_query_to_dict(cls, query: list[Query]) -> list[dict]:
+    #     return [item.model_dump() for item in query]
+    #
+    # # noinspection PyNestedDecorators
+    # @field_validator("buttons", mode="after")
+    # @classmethod
+    # def convert_buttons_to_dict(cls, buttons: list[SubPermission]) -> list[dict]:
+    #     return [item.model_dump() for item in buttons]
+    #
+    # # noinspection PyNestedDecorators
+    # @field_validator("interfaces", mode="after")
+    # @classmethod
+    # def convert_interfaces_to_dict(cls, interfaces: list[SubPermission]) -> list[dict]:
+    #     return [item.model_dump() for item in interfaces]
 
 
 class MenuTable(MenuBase, table=True):
@@ -214,3 +213,13 @@ class MenuSimplifyListResponse(BaseModel):
     nodeId: int
     menuName: str
     children: list["MenuSimplifyListResponse"] = []
+
+
+class MenuPermissionTreeResponse(BaseModel):
+    """菜单权限树的响应体"""
+
+    key: str
+    label: str
+    value: str
+    disabled: bool
+    children: list["MenuPermissionTreeResponse"] = []

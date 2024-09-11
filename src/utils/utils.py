@@ -6,6 +6,8 @@ import json
 import os
 import random
 import string
+from collections import Counter
+from typing import Any
 
 import pypinyin
 
@@ -67,3 +69,13 @@ def pinyin(chinese_characters: str) -> str:
     for item in pypinyin.pinyin(chinese_characters, style=pypinyin.NORMAL):
         _pinyin += "".join(item).capitalize()
     return _pinyin
+
+
+def get_duplicates(lst: list[Any]) -> list[Any]:
+    """
+    获取列表中的重复数据
+    :param lst:
+    :return:
+    """
+    count = Counter(lst)
+    return [item for item, count in count.items() if count > 1]

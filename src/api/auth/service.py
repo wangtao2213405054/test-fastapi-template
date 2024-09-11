@@ -173,5 +173,5 @@ async def get_current_user(
     user = await database.select(
         select(UserTable).options(database.joined_load(UserTable.role)).where(UserTable.id == user_data.userId)
     )
-    roles = user.role.menuIds if user.role else []
+    roles = user.role.buttonCodes if user.role else []
     return UserResponse(**user.model_dump(), roles=roles)

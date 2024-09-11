@@ -11,7 +11,7 @@ from src import database, utils
 from src.api.auth.exceptions import WrongPassword
 from src.api.auth.security import check_password, hash_password
 from src.api.auth.service import decrypt_password
-from src.exceptions import BadData
+from src.exceptions import BadData, DatabaseUniqueError
 from src.models.types import Pagination
 
 from .models import (
@@ -22,6 +22,7 @@ from .models import (
     MenuCreate,
     MenuInfoResponse,
     MenuListResponse,
+    MenuPermissionTreeResponse,
     MenuSimplifyListResponse,
     MenuTable,
     RoleCreate,
@@ -31,7 +32,7 @@ from .models import (
     UserResponse,
     UserTable,
 )
-from .types import MENU_ROUTE, Query, SubPermission
+from .types import MENU_ROUTE, PERMISSION_BUTTONS, PERMISSION_INTERFACE, Query, SubPermission
 
 
 @database.unique_check(
@@ -40,14 +41,14 @@ from .types import MENU_ROUTE, Query, SubPermission
     email=database.UniqueDetails(message="邮箱"),
 )
 async def create_user(
-    *,
-    name: str,
-    email: str,
-    mobile: str,
-    password: str,
-    affiliation_id: int,
-    avatar: str | None = None,
-    role_id: int | None = None,
+        *,
+        name: str,
+        email: str,
+        mobile: str,
+        password: str,
+        affiliation_id: int,
+        avatar: str | None = None,
+        role_id: int | None = None,
 ) -> UserResponse:
     """
     创建一个新的用户
@@ -91,15 +92,15 @@ async def create_user(
     email=database.UniqueDetails(message="邮件已存在"),
 )
 async def update_user(
-    *,
-    user_id: int,
-    name: str,
-    email: str,
-    mobile: str,
-    affiliation_id: int,
-    status: bool = True,
-    avatar: str | None = None,
-    role_id: int | None = None,
+        *,
+        user_id: int,
+        name: str,
+        email: str,
+        mobile: str,
+        affiliation_id: int,
+        status: bool = True,
+        avatar: str | None = None,
+        role_id: int | None = None,
 ) -> UserResponse:
     """
     修改用户信息
@@ -213,11 +214,11 @@ async def get_affiliation_tree(*, node_id: int, keyword: str = "") -> list[Affil
 
 
 async def edit_role(
-    *,
-    role_id: int,
-    name: str,
-    describe: str | None,
-    status: bool,
+        *,
+        role_id: int,
+        name: str,
+        describe: str | None,
+        status: bool,
 ) -> RoleInfoResponse:
     """
     创建/修改一个角色信息
@@ -247,11 +248,11 @@ async def edit_role(
 
 
 async def edit_role_permission(
-    *,
-    role_id: int,
-    menu_ids: list[int] | None = None,
-    interface_codes: list[str] | None = None,
-    button_codes: list[str] | None = None,
+        *,
+        role_id: int,
+        menu_ids: list[int] | None = None,
+        interface_codes: list[str] | None = None,
+        button_codes: list[str] | None = None,
 ) -> RoleInfoResponse:
     """
     修改一个角色的绑定权限信息
@@ -283,7 +284,7 @@ async def edit_role_permission(
 
 
 async def get_role_list(
-    page: int, size: int, *, keyword: str = "", status: bool | None = None
+        page: int, size: int, *, keyword: str = "", status: bool | None = None
 ) -> Pagination[list[RoleInfoResponse]]:
     """
     获取角色信息列表
@@ -330,7 +331,7 @@ async def delete_role(*, role_id: int) -> RoleInfoResponse:
 
 
 async def get_menu_tree(
-    *, node_id: int, keyword: str = "", page: int = 1, size: int = 20
+        *, node_id: int, keyword: str = "", page: int = 1, size: int = 20
 ) -> Pagination[list[MenuListResponse]]:
     """
     获取菜单树列表
@@ -361,29 +362,29 @@ async def get_menu_tree(
     routePath=database.UniqueDetails(message="路由路径", kwargsKey="route_path"),
 )
 async def edit_menu(
-    *,
-    menu_id: int,
-    component: str,
-    node_id: int,
-    menu_name: str,
-    menu_type: int,
-    route_name: str,
-    route_path: str,
-    i18n_key: str | None = None,
-    order: int,
-    icon_type: int,
-    icon: str,
-    status: bool,
-    hide_in_menu: bool,
-    multi_tab: bool,
-    keep_alive: bool,
-    href: str | None = None,
-    constant: bool,
-    fixed_index_in_tab: int | None = None,
-    homepage: bool,
-    query: list[Query],
-    buttons: list[SubPermission],
-    interfaces: list[SubPermission],
+        *,
+        menu_id: int,
+        component: str,
+        node_id: int,
+        menu_name: str,
+        menu_type: int,
+        route_name: str,
+        route_path: str,
+        i18n_key: str | None = None,
+        order: int,
+        icon_type: int,
+        icon: str,
+        status: bool,
+        hide_in_menu: bool,
+        multi_tab: bool,
+        keep_alive: bool,
+        href: str | None = None,
+        constant: bool,
+        fixed_index_in_tab: int | None = None,
+        homepage: bool,
+        query: list[Query],
+        buttons: list[SubPermission],
+        interfaces: list[SubPermission],
 ) -> MenuInfoResponse:
     """
     新增/修改一个路由菜单
@@ -412,6 +413,28 @@ async def edit_menu(
     :param interfaces: 接口权限列表
     :return: 当前创建or修改后的菜单
     """
+
+    async def check_permissions(permissions: list[SubPermission], menu_type: str, name: str) -> None:
+        """检查重复权限和冲突权限"""
+        codes = [item.code for item in permissions]
+
+        # 检查重复项
+        duplicates = utils.get_duplicates(codes)
+        if duplicates:
+            raise DatabaseUniqueError(f"`{'、'.join(duplicates)}`{name}权限重复")
+
+        # 检查与数据库中的冲突
+        if codes:
+            clause = [MenuTable.id != menu_id] if menu_id else None
+            permission_list = await get_menu_permission_list(menu_type, clause=clause)
+            existing_codes = {item.code for item in permission_list}
+            intersection = set(codes) & existing_codes
+            if intersection:
+                raise DatabaseUniqueError(f"`{'、'.join(intersection)}`{name}权限已存在")
+
+    await check_permissions(buttons, PERMISSION_BUTTONS, "按钮")
+    await check_permissions(interfaces, PERMISSION_INTERFACE, "接口")
+
     if menu_id:
         menu = await database.select(select(MenuTable).where(MenuTable.id == menu_id))
 
@@ -535,15 +558,97 @@ async def get_menu_simplify_tree() -> list[MenuSimplifyListResponse]:
     return menu  # type: ignore
 
 
-async def get_buttons_menu_list(menu_type: str) -> list[SubPermission]:
+async def get_menu_permission_list(
+        menu_type: str, *, clause: list[ColumnElement[bool]] | list[bool] | None = None
+) -> list[SubPermission]:
     """
     根据 `menu_type` 获取路由中全部的权限菜单
 
-
     :param menu_type: buttons or interfaces
+    :param clause: where 条件
     :return: 权限菜单列表
     """
 
-    menu = await database.select_all(select(getattr(MenuTable, menu_type)))
+    if clause is None:
+        clause = []
 
-    return list(chain.from_iterable(menu))
+    menu = await database.select_all(select(getattr(MenuTable, menu_type)).where(*clause))
+
+    return [SubPermission(**item) for item in list(chain.from_iterable(menu))]
+
+
+async def get_menu_permission_tree(menu_type: str) -> list[MenuPermissionTreeResponse]:
+    """
+    从数据库中检索并转换菜单树为权限树，然后过滤掉任何不活跃的项。
+
+    :param menu_type: buttons or interfaces
+    :return:
+    """
+
+    def transform_menu_tree_to_permission_tree(
+            tree: list[MenuListResponse], depth=1
+    ) -> list[MenuPermissionTreeResponse]:
+        """
+        递归地将菜单树转换为权限树。
+
+        :param tree:
+        :param depth: 递归深度
+        :return:
+        """
+        permission_menu_list = []
+
+        for index, menu in enumerate(tree, start=1):
+            permission_menu = MenuPermissionTreeResponse(
+                disabled=True, key=f"{depth}-{index}", label=menu.menuName, value=menu.routePath, children=[]
+            )
+
+            if menu.children:
+                children = transform_menu_tree_to_permission_tree(menu.children, depth + 1)
+                for _children in children:
+                    permission_menu.children.append(_children)
+
+            permission_type = getattr(menu, menu_type)
+            if permission_type:
+                for button_index, button in enumerate(permission_type, start=1):
+                    permission_menu.children.append(
+                        MenuPermissionTreeResponse(
+                            disabled=False,
+                            key=f"{depth}-{index}-{button_index}",
+                            label=button.description,
+                            value=button.code,
+                        )
+                    )
+
+            permission_menu_list.append(permission_menu)
+
+        return permission_menu_list
+
+    def filter_disabled(tree: list[MenuPermissionTreeResponse]) -> list[MenuPermissionTreeResponse]:
+        """
+        过滤掉树中所有被禁用的项及其子项（如果没有活跃的项存在）。
+
+        :param tree:
+        :return:
+        """
+        # 过滤当前层级的数据
+        filtered_children = []
+        has_active = False
+
+        for item in tree:
+            if item.children:
+                # 递归过滤子项
+                item.children = filter_disabled(item.children)
+
+            # 检查当前项是否有 active 子项
+            if not item.disabled:
+                has_active = True
+
+            # 如果当前项或其子项有 active，则保留
+            if has_active or item.children:
+                filtered_children.append(item)
+
+        return filtered_children
+
+    menu = await database.select_tree(MenuTable, MenuListResponse, node_id=0)
+
+    return filter_disabled(transform_menu_tree_to_permission_tree(menu))

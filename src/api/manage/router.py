@@ -27,7 +27,7 @@ from .service import (
     edit_role,
     edit_role_permission,
     get_affiliation_tree,
-    get_buttons_menu_list,
+    get_menu_permission_tree,
     get_menu_simplify_tree,
     get_menu_tree,
     get_page_list,
@@ -45,7 +45,6 @@ from .types import (
     ManageEditRolePermissionRequest,
     ManageGetDetailPermissionRequest,
     ManageGetMenuListRequest,
-    SubPermission,
     UpdatePasswordRequest,
     UpdateUserInfoRequest,
 )
@@ -336,13 +335,13 @@ async def router_menu_all() -> ResponseModel[list[MenuSimplifyListResponse]]:
 
 
 @router.post("/getPermissionMenuAll")
-async def buttons_menu_all(params: ManageGetDetailPermissionRequest) -> ResponseModel[list[SubPermission]]:
+async def buttons_menu_all(params: ManageGetDetailPermissionRequest):
     """
     通过菜单类型获取对应的列表, 支持 buttons or interfaces 参数。\f
 
     :param params: <ManageGetDetailPermissionRequest>
     :return: 对应菜单类型的列表
     """
-    menu = await get_buttons_menu_list(params.menuType)
+    menu = await get_menu_permission_tree(params.menuType)
 
     return ResponseModel(data=menu)
