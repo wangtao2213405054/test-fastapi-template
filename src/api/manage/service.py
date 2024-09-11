@@ -41,14 +41,14 @@ from .types import MENU_ROUTE, PERMISSION_BUTTONS, PERMISSION_INTERFACE, Query, 
     email=database.UniqueDetails(message="邮箱"),
 )
 async def create_user(
-        *,
-        name: str,
-        email: str,
-        mobile: str,
-        password: str,
-        affiliation_id: int,
-        avatar: str | None = None,
-        role_id: int | None = None,
+    *,
+    name: str,
+    email: str,
+    mobile: str,
+    password: str,
+    affiliation_id: int,
+    avatar: str | None = None,
+    role_id: int | None = None,
 ) -> UserResponse:
     """
     创建一个新的用户
@@ -92,15 +92,15 @@ async def create_user(
     email=database.UniqueDetails(message="邮件已存在"),
 )
 async def update_user(
-        *,
-        user_id: int,
-        name: str,
-        email: str,
-        mobile: str,
-        affiliation_id: int,
-        status: bool = True,
-        avatar: str | None = None,
-        role_id: int | None = None,
+    *,
+    user_id: int,
+    name: str,
+    email: str,
+    mobile: str,
+    affiliation_id: int,
+    status: bool = True,
+    avatar: str | None = None,
+    role_id: int | None = None,
 ) -> UserResponse:
     """
     修改用户信息
@@ -214,11 +214,11 @@ async def get_affiliation_tree(*, node_id: int, keyword: str = "") -> list[Affil
 
 
 async def edit_role(
-        *,
-        role_id: int,
-        name: str,
-        describe: str | None,
-        status: bool,
+    *,
+    role_id: int,
+    name: str,
+    describe: str | None,
+    status: bool,
 ) -> RoleInfoResponse:
     """
     创建/修改一个角色信息
@@ -248,11 +248,11 @@ async def edit_role(
 
 
 async def edit_role_permission(
-        *,
-        role_id: int,
-        menu_ids: list[int] | None = None,
-        interface_codes: list[str] | None = None,
-        button_codes: list[str] | None = None,
+    *,
+    role_id: int,
+    menu_ids: list[int] | None = None,
+    interface_codes: list[str] | None = None,
+    button_codes: list[str] | None = None,
 ) -> RoleInfoResponse:
     """
     修改一个角色的绑定权限信息
@@ -284,7 +284,7 @@ async def edit_role_permission(
 
 
 async def get_role_list(
-        page: int, size: int, *, keyword: str = "", status: bool | None = None
+    page: int, size: int, *, keyword: str = "", status: bool | None = None
 ) -> Pagination[list[RoleInfoResponse]]:
     """
     获取角色信息列表
@@ -331,7 +331,7 @@ async def delete_role(*, role_id: int) -> RoleInfoResponse:
 
 
 async def get_menu_tree(
-        *, node_id: int, keyword: str = "", page: int = 1, size: int = 20
+    *, node_id: int, keyword: str = "", page: int = 1, size: int = 20
 ) -> Pagination[list[MenuListResponse]]:
     """
     获取菜单树列表
@@ -362,29 +362,29 @@ async def get_menu_tree(
     routePath=database.UniqueDetails(message="路由路径", kwargsKey="route_path"),
 )
 async def edit_menu(
-        *,
-        menu_id: int,
-        component: str,
-        node_id: int,
-        menu_name: str,
-        menu_type: int,
-        route_name: str,
-        route_path: str,
-        i18n_key: str | None = None,
-        order: int,
-        icon_type: int,
-        icon: str,
-        status: bool,
-        hide_in_menu: bool,
-        multi_tab: bool,
-        keep_alive: bool,
-        href: str | None = None,
-        constant: bool,
-        fixed_index_in_tab: int | None = None,
-        homepage: bool,
-        query: list[Query],
-        buttons: list[SubPermission],
-        interfaces: list[SubPermission],
+    *,
+    menu_id: int,
+    component: str,
+    node_id: int,
+    menu_name: str,
+    menu_type: int,
+    route_name: str,
+    route_path: str,
+    i18n_key: str | None = None,
+    order: int,
+    icon_type: int,
+    icon: str,
+    status: bool,
+    hide_in_menu: bool,
+    multi_tab: bool,
+    keep_alive: bool,
+    href: str | None = None,
+    constant: bool,
+    fixed_index_in_tab: int | None = None,
+    homepage: bool,
+    query: list[Query],
+    buttons: list[SubPermission],
+    interfaces: list[SubPermission],
 ) -> MenuInfoResponse:
     """
     新增/修改一个路由菜单
@@ -559,7 +559,7 @@ async def get_menu_simplify_tree() -> list[MenuSimplifyListResponse]:
 
 
 async def get_menu_permission_list(
-        menu_type: str, *, clause: list[ColumnElement[bool]] | list[bool] | None = None
+    menu_type: str, *, clause: list[ColumnElement[bool]] | list[bool] | None = None
 ) -> list[SubPermission]:
     """
     根据 `menu_type` 获取路由中全部的权限菜单
@@ -586,7 +586,7 @@ async def get_menu_permission_tree(menu_type: str) -> list[MenuPermissionTreeRes
     """
 
     def transform_menu_tree_to_permission_tree(
-            tree: list[MenuListResponse], depth=1
+        tree: list[MenuListResponse], depth=1
     ) -> list[MenuPermissionTreeResponse]:
         """
         递归地将菜单树转换为权限树。
