@@ -10,7 +10,17 @@ from sqlmodel import Field, SQLModel
 from src.models.types import convert_datetime_to_gmt
 
 
-class BaseModel(SQLModel):
+class BaseNoCommonModel(SQLModel):
+    """没有任何定义的基础模型"""
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        arbitrary_types_allowed=True,  # 允许使用字符串类型前向引用, 即递归调用
+    )  # type: ignore
+
+
+class BaseModel(BaseNoCommonModel):
     """基础模型"""
 
     # 应该使用 default_factory=datetime.now 来生成默认时间, 当时没有找到格式化的方法
@@ -30,9 +40,3 @@ class BaseModel(SQLModel):
         :return:
         """
         return convert_datetime_to_gmt(value)
-
-    model_config = ConfigDict(
-        from_attributes=True,
-        populate_by_name=True,
-        arbitrary_types_allowed=True,  # 允许使用字符串类型前向引用, 即递归调用
-    )  # type: ignore
