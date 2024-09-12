@@ -12,7 +12,8 @@ from src.api.manage.models import UserTable
 from src.models.types import ResponseModel
 
 from .models import RouteListResponse
-from .service import get_constant_route_tree, get_user_route_tree
+from .service import get_constant_route_tree, get_user_route_tree, is_route_exist
+from .types import GetRouteIsExistRequest
 
 router = APIRouter(prefix="/route", dependencies=[Depends(parse_jwt_user_data)])
 
@@ -44,3 +45,17 @@ async def get_user_routes(
     routes = await get_user_route_tree(user=user)
 
     return ResponseModel(data=routes)
+
+
+@router.post("/isRouteExist")
+async def get_route_exist(body: GetRouteIsExistRequest) -> ResponseModel[bool]:
+    """
+    查询当前路由是否存在。\f
+
+    :param body: <GetRouteIsExistRequest>
+    :return:
+    """
+
+    exist = await is_route_exist(name=body.routeName)
+
+    return ResponseModel(data=exist)
