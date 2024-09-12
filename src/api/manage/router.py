@@ -3,8 +3,9 @@
 # _description: 系统管理相关路由
 
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from src.api.auth.jwt import validate_permission
 from src.models.types import BatchDeleteRequestModel, DeleteRequestModel, Pagination, ResponseModel
 
 from .models import (
@@ -12,6 +13,7 @@ from .models import (
     AffiliationListResponse,
     MenuInfoResponse,
     MenuListResponse,
+    MenuPermissionTreeResponse,
     MenuSimplifyListResponse,
     RoleInfoResponse,
     UserResponse,
@@ -49,7 +51,7 @@ from .types import (
     UpdateUserInfoRequest,
 )
 
-router = APIRouter(prefix="/manage")
+router = APIRouter(prefix="/manage", dependencies=[Depends(validate_permission)])
 
 
 @router.post("/createUser")
@@ -335,7 +337,7 @@ async def router_menu_all() -> ResponseModel[list[MenuSimplifyListResponse]]:
 
 
 @router.post("/getPermissionMenuAll")
-async def buttons_menu_all(params: ManageGetDetailPermissionRequest):
+async def buttons_menu_all(params: ManageGetDetailPermissionRequest) -> ResponseModel[list[MenuPermissionTreeResponse]]:
     """
     通过菜单类型获取对应的列表, 支持 buttons or interfaces 参数。\f
 

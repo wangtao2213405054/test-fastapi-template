@@ -586,28 +586,28 @@ async def get_menu_permission_tree(menu_type: str) -> list[MenuPermissionTreeRes
     """
 
     def transform_menu_tree_to_permission_tree(
-        tree: list[MenuListResponse], depth=1
+        tree: list[MenuListResponse], depth: int = 1
     ) -> list[MenuPermissionTreeResponse]:
         """
         递归地将菜单树转换为权限树。
 
-        :param tree:
+        :param tree: 菜单响应对象列表
         :param depth: 递归深度
         :return:
         """
         permission_menu_list = []
 
-        for index, menu in enumerate(tree, start=1):
+        for index, _menu in enumerate(tree, start=1):
             permission_menu = MenuPermissionTreeResponse(
-                disabled=True, key=f"{depth}-{index}", label=menu.menuName, value=menu.routePath, children=[]
+                disabled=True, key=f"{depth}-{index}", label=_menu.menuName, value=_menu.routePath, children=[]
             )
 
-            if menu.children:
-                children = transform_menu_tree_to_permission_tree(menu.children, depth + 1)
+            if _menu.children:
+                children = transform_menu_tree_to_permission_tree(_menu.children, depth + 1)
                 for _children in children:
                     permission_menu.children.append(_children)
 
-            permission_type = getattr(menu, menu_type)
+            permission_type = getattr(_menu, menu_type)
             if permission_type:
                 for button_index, button in enumerate(permission_type, start=1):
                     permission_menu.children.append(
@@ -651,4 +651,4 @@ async def get_menu_permission_tree(menu_type: str) -> list[MenuPermissionTreeRes
 
     menu = await database.select_tree(MenuTable, MenuListResponse, node_id=0)
 
-    return filter_disabled(transform_menu_tree_to_permission_tree(menu))
+    return filter_disabled(transform_menu_tree_to_permission_tree(menu))  # type: ignore

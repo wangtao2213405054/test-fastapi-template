@@ -158,20 +158,32 @@ def decrypt_password(password: str) -> str:
     return rsa_password
 
 
-async def get_current_user(
-    user_data: Annotated[JWTData, Depends(jwt.parse_jwt_user_data)],
-) -> UserResponse:
+async def get_current_user_table(user_data: Annotated[JWTData, Depends(jwt.parse_jwt_user_data)]) -> UserTable:
     """
     获取当前用户信息
 
     该函数根据 JWT 数据中的用户 ID 从数据库中获取用户信息。
 
     :param user_data: 由 JWT 解析函数提供的用户数据
-    :return: 当前用户的响应对象
+    :return:
     """
 
     user = await database.select(
         select(UserTable).options(database.joined_load(UserTable.role)).where(UserTable.id == user_data.userId)
     )
+
+    return user
+
+
+async def get_current_user(
+    user: Annotated[UserTable, Depends(get_current_user_table)],
+) -> UserResponse:
+    """
+    获取当前用户响应信息
+
+    :param user: 由 JWT 解析函数提供的用户数据
+    :return: 当前用户的响应对象
+    """
+
     roles = user.role.buttonCodes if user.role else []
     return UserResponse(**user.model_dump(), roles=roles)

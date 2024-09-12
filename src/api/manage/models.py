@@ -138,11 +138,11 @@ class UserResponse(UserBase):
     roles: list[str] = []
 
 
-class MenuBase(BaseModel):
-    """路由菜单数据模型"""
+class RouteBase(BaseModel):
+    """路由模型"""
 
-    component: str = Field(..., description="路由组件")
     nodeId: int = Field(0, description="节点ID")
+    component: str = Field(..., description="路由组件")
     menuName: str = Field(..., description="菜单名称")
     menuType: int = Field(MENU_DIRECTORY, description="菜单类型")
     routeName: str = Field(..., description="路由名称")
@@ -159,27 +159,14 @@ class MenuBase(BaseModel):
     constant: bool = Field(False, description="是否为常量路由")
     fixedIndexInTab: int | None = Field(None, description="如果设置了值，路由将在标签页中固定，并且值为固定标签的顺序")
     homepage: bool = Field(True, description="如果为真则此路由将进入首页，否则详情页")
+
+
+class MenuBase(RouteBase):
+    """路由菜单数据模型"""
+
     query: list[Query] = Field([], sa_column=Column(JSON), description="进入路由时默认携带的参数")
     buttons: list[SubPermission] = Field([], sa_column=Column(JSON), description="按钮权限")
     interfaces: list[SubPermission] = Field([], sa_column=Column(JSON), description="接口权限")
-
-    # # noinspection PyNestedDecorators
-    # @field_validator("query", mode="after")
-    # @classmethod
-    # def convert_query_to_dict(cls, query: list[Query]) -> list[dict]:
-    #     return [item.model_dump() for item in query]
-    #
-    # # noinspection PyNestedDecorators
-    # @field_validator("buttons", mode="after")
-    # @classmethod
-    # def convert_buttons_to_dict(cls, buttons: list[SubPermission]) -> list[dict]:
-    #     return [item.model_dump() for item in buttons]
-    #
-    # # noinspection PyNestedDecorators
-    # @field_validator("interfaces", mode="after")
-    # @classmethod
-    # def convert_interfaces_to_dict(cls, interfaces: list[SubPermission]) -> list[dict]:
-    #     return [item.model_dump() for item in interfaces]
 
 
 class MenuTable(MenuBase, table=True):

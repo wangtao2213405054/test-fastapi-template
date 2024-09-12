@@ -84,7 +84,7 @@ async def refresh_user_token(body: RefreshTokenRequest) -> ResponseModel[AccessT
     return ResponseModel(data=response)
 
 
-@router.get("/getUserInfo", dependencies=[Depends(jwt.validate_permission)])
+@router.get("/getUserInfo", dependencies=[Depends(jwt.parse_jwt_user_data)])
 async def user_info(
     user: Annotated[UserResponse, Depends(get_current_user)],
 ) -> ResponseModel[UserResponse]:
