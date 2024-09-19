@@ -20,6 +20,7 @@ from .models import (
 )
 from .service import (
     batch_delete_menu,
+    batch_delete_role,
     create_user,
     delete_affiliation,
     delete_menu,
@@ -178,6 +179,21 @@ async def role_delete(body: DeleteRequestModel) -> ResponseModel[RoleInfoRespons
     :return: 包含被删除角色信息的 <ResponseModel> 对象
     """
     role = await delete_role(role_id=body.id)
+    return ResponseModel(data=role)
+
+
+@router.delete("/batchDeleteRole")
+async def role_batch_delete(body: BatchDeleteRequestModel) -> ResponseModel[list[RoleInfoResponse]]:
+    """
+    批量删除角色接口
+
+    根据角色 ID 列表删除指定的角色。\f
+
+    :param body: 包含菜单 ids 的 <DeleteRequestModel> 对象
+    :return:
+    """
+
+    role = await batch_delete_role(ids=body.ids)
     return ResponseModel(data=role)
 
 

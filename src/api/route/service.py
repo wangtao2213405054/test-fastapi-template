@@ -40,7 +40,12 @@ def transform_routes(menu_list: list[MenuListResponse]) -> list[RouteMenuTreeRes
         )
 
         route = RouteMenuTreeResponse(
-            id=menu.id, name=menu.routeName, path=menu.routePath, component=menu.component, meta=meta
+            id=menu.id,
+            name=menu.routeName,
+            path=menu.routePath,
+            component=menu.component,
+            meta=meta,
+            props=":" in menu.routePath,
         )
 
         if menu.menuType == MENU_DIRECTORY and menu.children:
@@ -62,7 +67,7 @@ async def get_constant_route_tree() -> list[RouteMenuTreeResponse]:
         MenuTable,
         MenuListResponse,
         node_id=0,
-        clause_list=[MenuTable.constant == 1],
+        clause_list=[MenuTable.constant == 1, MenuTable.status == 1],
     )
 
     return transform_routes(routes)  # type: ignore
@@ -76,7 +81,7 @@ async def get_user_route_tree(*, user: UserTable) -> list[RouteMenuTreeResponse]
     :return:
     """
 
-    clause: list[ColumnElement[bool] | bool] = [MenuTable.constant == 0]
+    clause: list[ColumnElement[bool] | bool] = [MenuTable.constant == 0, MenuTable.status == 1]
 
     # 如果非常量路由并且不是超管
     if not user.isAdmin:

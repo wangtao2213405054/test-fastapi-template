@@ -34,5 +34,6 @@ class RouteMenuTreeResponse(BaseNoCommonModel):
     name: str
     path: str
     component: str
+    props: bool = False
     meta: RouteMeta
     children: list["RouteMenuTreeResponse"] = []

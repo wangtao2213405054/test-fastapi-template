@@ -2,7 +2,8 @@
 # _date: 2024/9/14 上午10:04
 # _description:
 
-from sqlmodel import create_engine, Session
+from sqlmodel import Session, create_engine
+
 from src.config import settings
 
 
@@ -24,7 +25,7 @@ async def session() -> Session:
     # 如果存在异步驱动则更改为同步
     db_driver_parts = db_driver.split("+")
     if len(db_driver_parts) > 1:
-        sync_scheme = f'{db_driver_parts[0].strip()}+mysqlconnector'
+        sync_scheme = f"{db_driver_parts[0].strip()}+mysqlconnector"
         database_url = database_url.replace(db_driver, sync_scheme)
 
     engine = create_engine(database_url, echo=True)

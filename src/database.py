@@ -12,7 +12,7 @@ from sqlalchemy import BinaryExpression, MetaData
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.sql.elements import ColumnElement
-from sqlmodel import col
+from sqlmodel import col, desc
 from sqlmodel import select as _select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.sql.expression import Select, SelectOfScalar
@@ -274,7 +274,7 @@ async def select_tree(
     if node_id or not keyword:
         clause.append(getattr(table, recursion_id) == node_id)
 
-    query = _select(table).where(*clause)
+    query = _select(table).where(*clause).order_by(desc(table.id))
 
     # 获取数据
     if isinstance(page, int) and isinstance(size, int):

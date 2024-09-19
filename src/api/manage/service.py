@@ -330,6 +330,23 @@ async def delete_role(*, role_id: int) -> RoleInfoResponse:
     return RoleInfoResponse(**role.model_dump())
 
 
+async def batch_delete_role(*, ids: list[int]) -> list[RoleInfoResponse]:
+    """
+    删除多个角色
+
+    该函数根据 `ids` 删除指定的角色。
+
+    :param ids: 角色 ID 列表
+    :return
+    """
+
+    role = await database.batch_delete(
+        select(RoleTable).where(or_(*[RoleTable.id == _id for _id in ids], *[MenuTable.nodeId == _id for _id in ids]))
+    )
+
+    return [RoleInfoResponse(**item.model_dump()) for item in role]
+
+
 async def get_menu_tree(
     *, node_id: int, keyword: str = "", page: int = 1, size: int = 20
 ) -> Pagination[list[MenuListResponse]]:
